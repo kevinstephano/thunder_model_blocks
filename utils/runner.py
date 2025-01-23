@@ -63,8 +63,7 @@ def run(sys_argv, model_name, batch_size, sequence_length, model, input_fn, mode
     parser.add_argument('--nsys', default=False, action="store_true", help='Disables torch.profiler for nsys.')
     parser.add_argument('--warmup', default=5, type=int, help='Warmup iterations.')
     parser.add_argument('--iters', default=10, type=int, help='Timing iterations.')
-    #parser.add_argument('--execs', nargs='+', type=str, help='List of executor names to time.', default=["Torch-Eager", "torch.compile", "Thunder-torch.compile", "Thunder-Torch", "Thunder-nvFuser"], required=False)
-    parser.add_argument('--execs', nargs='+', type=str, help='List of executor names to time.', default=["Torch-Eager", "torch.compile", "Thunder-default", "Thunder-nvFuser"], required=False)
+    parser.add_argument('--execs', nargs='+', type=str, help='List of executor names to time.', default=["Torch-Eager", "torch.compile", "Thunder-torch.compile", "Thunder-default", "Thunder-nvFuser"], required=False)
     parser.add_argument('--thunder_trace', default=False, action="store_true", help='Prints a Thunder trace.')
     parser.add_argument('--nvfuser_repro', default=False, action="store_true", help='Prints an nvFuser reproduction script.')
     args,extra_args = parser.parse_known_args(args=sys_argv[1:])
@@ -234,10 +233,20 @@ def run(sys_argv, model_name, batch_size, sequence_length, model, input_fn, mode
                 print(f"nvfuser Backward Repro: {key}")
                 fd_bwd[key].last_used.execute(inputs=fd_bwd[key].last_inputs, print_repro=True)
 
-        benchmark_data.append([model_name, batch_size, sequence_length, name, fwd_kernels, fwd_time, bwd_kernels, bwd_time])
+        #benchmark_data.append([model_name, batch_size, sequence_length, name, fwd_kernels, fwd_time, bwd_kernels, bwd_time])
+        benchmark_data.append([model_name, batch_size, sequence_length, fwd_kernels, fwd_time, bwd_kernels, bwd_time, fwd_kernels+bwd_kernels, fwd_time+bwd_time])
         #print(f"{model_name} {name} Fwd-Time: {fwd_time:.03f} ms Bwd-Time: {bwd_time:.03f} ms")
 
-    df = pd.DataFrame(benchmark_data, columns=["Model", "Batch-Size", "Sequence-Length", "Executor", "Forward-Kernels", "Forward-Time(ms)", "Backward-Kernels", "Backward-Time(ms)"])
+    df = None
+    if (len(executors.keys()) > 1) and  ("Torch-Eager" in executors.keys()) :
+        df = pd.DataFrame(benchmark_data, index=executors.keys(), columns=["Model", "Batch", "Seq-Len", "Fwd-Krnls", "Fwd-Krnl-Time(ms)", "Bwd-Krnls", "Bwd-Krnl-Time(ms)", "Krnls", "Krnl-Time(ms)"])
+        df["Fwd-Krnl-Spdup"] = df["Fwd-Krnl-Time(ms)"].rdiv(df.loc["Torch-Eager", 'Fwd-Krnl-Time(ms)'])
+        df["Bwd-Krnl-Spdup"] = df["Bwd-Krnl-Time(ms)"].rdiv(df.loc["Torch-Eager", 'Bwd-Krnl-Time(ms)'])
+        df["Krnl-Spdup"] = df["Krnl-Time(ms)"].rdiv(df.loc["Torch-Eager", 'Krnl-Time(ms)'])
+        new_order = ["Model", "Batch", "Seq-Len", "Fwd-Krnls", "Fwd-Krnl-Time(ms)", "Fwd-Krnl-Spdup", "Bwd-Krnls", "Bwd-Krnl-Time(ms)", "Bwd-Krnl-Spdup", "Krnls", "Krnl-Time(ms)", "Krnl-Spdup"]
+        df = df[new_order]
+    else:
+        df = pd.DataFrame(benchmark_data, index=executors.keys(), columns=["Model", "Batch", "Seq-Len", "Fwd-Krnls", "Fwd-Krnl-Time(ms)", "Bwd-Krnls", "Bwd-Krnl-Time(ms)", "Krnls", "Krnl-Time(ms)"])
     print(df)
 
     return None
