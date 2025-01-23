@@ -5,6 +5,7 @@ import subprocess
 import sys
 import thunder
 from thunder.dynamo import thunderfx
+import timeit
 import torch
 from torch.profiler import profile, ProfilerActivity
 from typing import Callable
@@ -137,7 +138,38 @@ def run(sys_argv, model_name, batch_size, sequence_length, model, input_fn, mode
                                 fd_bwd[key] = thunder.last_backward_traces(thunder_fn)[-1].python_ctx()[key]
                                 fd_bwd[key].store_inputs = True
 
-        def model_iter():
+        def step_func(input_dict, model_has_loss, grads):
+            y = exec_model(**input_dict)
+            if model_has_loss or grads is not None:
+                for idx in range(0, len(y)):
+                    if idx == 0:
+                        loss = y[0]
+                    else:
+                        loss += y[idx]
+
+                for param in exec_model.parameters():
+                    param.grad = None
+
+                if model_has_loss:
+                    loss.backward()
+                else:
+                    loss.backward(grads)
+            torch.cuda.synchronize()
+
+        def wallclock_time_iter(count):
+            input_dict = input_fn()
+            grads = None
+            if grad_fn is not None:
+                grads = grad_fn()
+
+            t = timeit.Timer(
+                stmt="step_func(input_dict, model_has_loss, grads)",
+                globals={"step_func": step_func, "input_dict": input_dict, "model_has_loss": model_has_loss, "grads": grads}
+            )
+
+            return t.timeit(count)
+            
+        def kernel_time_iter():
             torch.cuda.nvtx.range_push("Inputs Generation")
             input_dict = input_fn()
             torch.cuda.nvtx.range_pop()
@@ -198,29 +230,32 @@ def run(sys_argv, model_name, batch_size, sequence_length, model, input_fn, mode
 
         def run_model():
             for _ in range(args.warmup):
-                model_iter()
+                kernel_time_iter()
            
             fwd_kernel_time = 0
             bwd_kernel_time = 0
             fwd_kernels = 0
             bwd_kernels = 0
             for _ in range(args.iters):
-                fwd_kernels, fwd_time, bwd_kernels, bwd_time = model_iter()
+                fwd_kernels, fwd_time, bwd_kernels, bwd_time = kernel_time_iter()
                 fwd_kernel_time += fwd_time
                 bwd_kernel_time += bwd_time
 
             fwd_kernel_time = fwd_kernel_time / args.iters / 1.e3
             bwd_kernel_time = bwd_kernel_time / args.iters / 1.e3
+
+            wallclock_time = wallclock_time_iter(args.iters) / args.iters * 1000.0
             
-            return fwd_kernels, fwd_kernel_time, bwd_kernels, bwd_kernel_time
+            return fwd_kernels, fwd_kernel_time, bwd_kernels, bwd_kernel_time, wallclock_time
 
         fwd_time = 0.0
         bwd_time = 0.0
         fwd_kernels = 0
         bwd_kernels = 0
+        wallclock_time = 0.0
         torch.cuda.nvtx.range_push(f"Executor: {name}")
         try:
-            fwd_kernels, fwd_time, bwd_kernels, bwd_time = run_model()
+            fwd_kernels, fwd_time, bwd_kernels, bwd_time, wallclock_time = run_model()
         except Exception as e:
             print("Model Exception!", e)
         torch.cuda.nvtx.range_pop()
@@ -234,15 +269,17 @@ def run(sys_argv, model_name, batch_size, sequence_length, model, input_fn, mode
                 fd_bwd[key].last_used.execute(inputs=fd_bwd[key].last_inputs, print_repro=True)
 
         #benchmark_data.append([model_name, batch_size, sequence_length, name, fwd_kernels, fwd_time, bwd_kernels, bwd_time])
-        benchmark_data.append([model_name, batch_size, sequence_length, fwd_kernels, fwd_time, bwd_kernels, bwd_time, fwd_kernels+bwd_kernels, fwd_time+bwd_time])
+        total_time = fwd_time + bwd_time
+        benchmark_data.append([model_name, batch_size, sequence_length, fwd_kernels, fwd_time, bwd_kernels, bwd_time, fwd_kernels+bwd_kernels, total_time, wallclock_time, wallclock_time - total_time])
         #print(f"{model_name} {name} Fwd-Time: {fwd_time:.03f} ms Bwd-Time: {bwd_time:.03f} ms")
 
-    df = pd.DataFrame(benchmark_data, index=executors.keys(), columns=["Model", "Batch", "Seq-Len", "Fwd-Krnls", "Fwd-Krnl-Time(ms)", "Bwd-Krnls", "Bwd-Krnl-Time(ms)", "Krnls", "Krnl-Time(ms)"])
+    df = pd.DataFrame(benchmark_data, index=executors.keys(), columns=["Model", "Batch", "Seq-Len", "Fwd-Krnls", "Fwd-K-Time(ms)", "Bwd-Krnls", "Bwd-K-Time(ms)", "Krnls", "K-Time(ms)", "Wall-Time(ms)", "Overhead(ms)"])
     if (len(executors.keys()) > 1) and  ("Torch-Eager" in executors.keys()) :
-        df["Fwd-Krnl-Spdup"] = df["Fwd-Krnl-Time(ms)"].rdiv(df.loc["Torch-Eager", 'Fwd-Krnl-Time(ms)'])
-        df["Bwd-Krnl-Spdup"] = df["Bwd-Krnl-Time(ms)"].rdiv(df.loc["Torch-Eager", 'Bwd-Krnl-Time(ms)'])
-        df["Krnl-Spdup"] = df["Krnl-Time(ms)"].rdiv(df.loc["Torch-Eager", 'Krnl-Time(ms)'])
-        new_order = ["Model", "Batch", "Seq-Len", "Fwd-Krnls", "Fwd-Krnl-Time(ms)", "Fwd-Krnl-Spdup", "Bwd-Krnls", "Bwd-Krnl-Time(ms)", "Bwd-Krnl-Spdup", "Krnls", "Krnl-Time(ms)", "Krnl-Spdup"]
+        df["Fwd-K-Spdup"] = df["Fwd-K-Time(ms)"].rdiv(df.loc["Torch-Eager", 'Fwd-K-Time(ms)'])
+        df["Bwd-K-Spdup"] = df["Bwd-K-Time(ms)"].rdiv(df.loc["Torch-Eager", 'Bwd-K-Time(ms)'])
+        df["K-Spdup"] = df["K-Time(ms)"].rdiv(df.loc["Torch-Eager", 'K-Time(ms)'])
+        df["Wall-Spdup"] = df["Wall-Time(ms)"].rdiv(df.loc["Torch-Eager", 'Wall-Time(ms)'])
+        new_order = ["Model", "Batch", "Seq-Len", "Fwd-Krnls", "Fwd-K-Time(ms)", "Fwd-K-Spdup", "Bwd-Krnls", "Bwd-K-Time(ms)", "Bwd-K-Spdup", "Krnls", "K-Time(ms)", "K-Spdup", "Wall-Time(ms)", "Wall-Spdup", "Overhead(ms)"]
         df = df[new_order]
     print(df)
 
