@@ -237,16 +237,13 @@ def run(sys_argv, model_name, batch_size, sequence_length, model, input_fn, mode
         benchmark_data.append([model_name, batch_size, sequence_length, fwd_kernels, fwd_time, bwd_kernels, bwd_time, fwd_kernels+bwd_kernels, fwd_time+bwd_time])
         #print(f"{model_name} {name} Fwd-Time: {fwd_time:.03f} ms Bwd-Time: {bwd_time:.03f} ms")
 
-    df = None
+    df = pd.DataFrame(benchmark_data, index=executors.keys(), columns=["Model", "Batch", "Seq-Len", "Fwd-Krnls", "Fwd-Krnl-Time(ms)", "Bwd-Krnls", "Bwd-Krnl-Time(ms)", "Krnls", "Krnl-Time(ms)"])
     if (len(executors.keys()) > 1) and  ("Torch-Eager" in executors.keys()) :
-        df = pd.DataFrame(benchmark_data, index=executors.keys(), columns=["Model", "Batch", "Seq-Len", "Fwd-Krnls", "Fwd-Krnl-Time(ms)", "Bwd-Krnls", "Bwd-Krnl-Time(ms)", "Krnls", "Krnl-Time(ms)"])
         df["Fwd-Krnl-Spdup"] = df["Fwd-Krnl-Time(ms)"].rdiv(df.loc["Torch-Eager", 'Fwd-Krnl-Time(ms)'])
         df["Bwd-Krnl-Spdup"] = df["Bwd-Krnl-Time(ms)"].rdiv(df.loc["Torch-Eager", 'Bwd-Krnl-Time(ms)'])
         df["Krnl-Spdup"] = df["Krnl-Time(ms)"].rdiv(df.loc["Torch-Eager", 'Krnl-Time(ms)'])
         new_order = ["Model", "Batch", "Seq-Len", "Fwd-Krnls", "Fwd-Krnl-Time(ms)", "Fwd-Krnl-Spdup", "Bwd-Krnls", "Bwd-Krnl-Time(ms)", "Bwd-Krnl-Spdup", "Krnls", "Krnl-Time(ms)", "Krnl-Spdup"]
         df = df[new_order]
-    else:
-        df = pd.DataFrame(benchmark_data, index=executors.keys(), columns=["Model", "Batch", "Seq-Len", "Fwd-Krnls", "Fwd-Krnl-Time(ms)", "Bwd-Krnls", "Bwd-Krnl-Time(ms)", "Krnls", "Krnl-Time(ms)"])
     print(df)
 
     return None
