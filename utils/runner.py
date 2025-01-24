@@ -189,6 +189,8 @@ def run(sys_argv, model_name, batch_size, sequence_length, model, input_fn, mode
                 y = exec_model(**input_dict)
             torch.cuda.nvtx.range_pop()
            
+            bwd_time = 0.0
+            bwd_kernels = 0
             if model_has_loss or grad_fn is not None:
                 torch.cuda.nvtx.range_push("Forward-Loss")
                 for idx in range(0, len(y)):
@@ -206,8 +208,6 @@ def run(sys_argv, model_name, batch_size, sequence_length, model, input_fn, mode
                 torch.cuda.nvtx.range_pop()
 
                 torch.cuda.nvtx.range_push("Backward")
-                bwd_time = 0.0
-                bwd_kernels = 0
                 if not args.nsys:
                     with profile(activities=[ProfilerActivity.CUDA]) as prof: 
                         if model_has_loss:
@@ -268,10 +268,8 @@ def run(sys_argv, model_name, batch_size, sequence_length, model, input_fn, mode
                 print(f"nvfuser Backward Repro: {key}")
                 fd_bwd[key].last_used.execute(inputs=fd_bwd[key].last_inputs, print_repro=True)
 
-        #benchmark_data.append([model_name, batch_size, sequence_length, name, fwd_kernels, fwd_time, bwd_kernels, bwd_time])
         total_time = fwd_time + bwd_time
         benchmark_data.append([model_name, batch_size, sequence_length, fwd_kernels, fwd_time, bwd_kernels, bwd_time, fwd_kernels+bwd_kernels, total_time, wallclock_time, wallclock_time - total_time])
-        #print(f"{model_name} {name} Fwd-Time: {fwd_time:.03f} ms Bwd-Time: {bwd_time:.03f} ms")
 
     df = pd.DataFrame(benchmark_data, index=executors.keys(), columns=["Model", "Batch", "Seq-Len", "Fwd-Krnls", "Fwd-K-Time(ms)", "Bwd-Krnls", "Bwd-K-Time(ms)", "Krnls", "K-Time(ms)", "Wall-Time(ms)", "Overhead(ms)"])
     if (len(executors.keys()) > 1) and  ("Torch-Eager" in executors.keys()) :

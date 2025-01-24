@@ -9,12 +9,11 @@ from transformers.models.qwen2 import Qwen2ForCausalLM
 
 config = AutoConfig.from_pretrained("Qwen/Qwen2.5-7B-Instruct")
 
-qwen2_cfg = config
-qwen2_cfg.batch_size = 1
-qwen2_cfg.seq_len = 4096
-qwen2_cfg._attn_implementation = "sdpa"
+config.batch_size = 1
+config.seq_len = 4096
+config._attn_implementation = "sdpa"
 configs = {}
-configs[qwen2_cfg.name_or_path] = qwen2_cfg
+configs[config.name_or_path] = config
 
 class MyModel(torch.nn.Module):
     def __init__(self, config):
