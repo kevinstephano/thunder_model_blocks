@@ -229,8 +229,9 @@ def run(sys_argv, model_name, batch_size, sequence_length, model, input_fn, mode
 
 
         def run_model():
-            for _ in range(args.warmup):
-                kernel_time_iter()
+            wallclock_time_iter(args.warmup)
+            
+            wallclock_time = wallclock_time_iter(args.iters) / args.iters * 1000.0
            
             fwd_kernel_time = 0
             bwd_kernel_time = 0
@@ -244,8 +245,6 @@ def run(sys_argv, model_name, batch_size, sequence_length, model, input_fn, mode
             fwd_kernel_time = fwd_kernel_time / args.iters / 1.e3
             bwd_kernel_time = bwd_kernel_time / args.iters / 1.e3
 
-            wallclock_time = wallclock_time_iter(args.iters) / args.iters * 1000.0
-            
             return fwd_kernels, fwd_kernel_time, bwd_kernels, bwd_kernel_time, wallclock_time
 
         fwd_time = 0.0
