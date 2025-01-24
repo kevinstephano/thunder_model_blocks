@@ -2,11 +2,11 @@ import json
 import sys
 import torch
 from torch import nn
-from utils import runner
+from thunder_model_blocks.utils import runner
 
 from nemo.collections.llm.peft.lora import patch_linear_module
 from transformers.cache_utils import DynamicCache
-from transformers.models.mistral.modeling_mistral import MistralDecoderLayer, MistralConfig
+from transformers.models.mistral.modeling_mistral import MistralAttention, MistralConfig
 
 '''
 # Example to download model and config
@@ -54,7 +54,7 @@ configs[config.name_or_path] = config
 class MyModel(torch.nn.Module):
     def __init__(self, config):
         super(MyModel, self).__init__()
-        self.model = MistralDecoderLayer(config, 0)
+        self.model = MistralAttention(config, 0)
 
     def forward(
         self,
@@ -64,14 +64,14 @@ class MyModel(torch.nn.Module):
         position_ids,
         ) :
         kwargs = {"position_ids": position_ids, "output_attentions": False, "use_cache": True}
-        out = self.model(hidden_states=hidden_states,
+        out,_ = self.model(hidden_states=hidden_states,
                          position_embeddings=position_embeddings,
                          attention_mask=None,
                          past_key_value=DynamicCache(),
                          cache_position=cache_position,
                          **kwargs
                          )
-        return out
+        return (out,)
 
 if __name__ == "__main__":
     for name,cfg in configs.items():

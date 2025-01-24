@@ -1,6 +1,6 @@
 import argparse
 from collections import OrderedDict
-from functools import partial, wraps
+from functools import partial
 import subprocess
 import sys
 import thunder
@@ -8,7 +8,6 @@ from thunder.dynamo import thunderfx
 import timeit
 import torch
 from torch.profiler import profile, ProfilerActivity
-from typing import Callable
 
 def install_pandas():
     """
@@ -86,6 +85,8 @@ def run(sys_argv, model_name, batch_size, sequence_length, model, input_fn, mode
             executors["Thunder-default"] = partial(thunderfx)
         elif exec == "Thunder-nvFuser":
             executors["Thunder-nvFuser"] = partial(thunderfx, executors=["apex","cudnn","sdpa","nvfuser"])
+        elif exec == "Thunder-nvFuser-more-ops":
+            executors["Thunder-nvFuser"] = partial(thunderfx, executors=["apex","cudnn","sdpa","nvfuser"], nv_enable_linear=True, nv_enable_matmul=True, nv_enable_embedding=True)
         elif exec == "Thunder-torch.compile":
             executors["Thunder-torch.compile"] = partial(thunderfx, executors=["cudnn","torchcompile"])
         else:
@@ -95,7 +96,7 @@ def run(sys_argv, model_name, batch_size, sequence_length, model, input_fn, mode
     for name, exec in executors.items():
         exec_model = exec(model)
 
-        if ((name == "Thunder-default") or (name == "Thunder-nvFuser") or (name == "Thunder-Torch") or (name == "Thunder-torch.compile")) and args.thunder_trace:
+        if ((name == "Thunder-nvFuser-more-ops") or (name == "Thunder-default") or (name == "Thunder-nvFuser") or (name == "Thunder-Torch") or (name == "Thunder-torch.compile")) and args.thunder_trace:
             exec_model(**input_fn())
             backend = exec_model._backend
             print(name, "Forward:")
@@ -116,7 +117,7 @@ def run(sys_argv, model_name, batch_size, sequence_length, model, input_fn, mode
 
         fd_fwd = {}
         fd_bwd = {}
-        if ((name == "Thunder-nvFuser") or (name == "Thunder-default")) and args.nvfuser_repro:
+        if ((name == "Thunder-nvFuser-more-ops") or (name == "Thunder-nvFuser") or (name == "Thunder-default")) and args.nvfuser_repro:
             exec_model(**input_fn())
             backend = exec_model._backend
             for subgraph_info in backend.subgraph_infos:
@@ -259,7 +260,7 @@ def run(sys_argv, model_name, batch_size, sequence_length, model, input_fn, mode
             print("Model Exception!", e)
         torch.cuda.nvtx.range_pop()
 
-        if ((name == "Thunder-nvFuser") or (name == "Thunder-default")) and args.nvfuser_repro:
+        if ((name == "Thunder-nvFuser-more-ops") or (name == "Thunder-nvFuser") or (name == "Thunder-default")) and args.nvfuser_repro:
             for key in fd_fwd.keys():
                 print(f"nvfuser Forward Repro: {key}")
                 fd_fwd[key].last_used.execute(inputs=fd_fwd[key].last_inputs, print_repro=True)

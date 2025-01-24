@@ -1,7 +1,7 @@
 import torch
 from torch import nn
 import sys
-from utils import runner
+from thunder_model_blocks.utils import runner
 
 from transformers.models.llama import LlamaForCausalLM, LlamaConfig
 

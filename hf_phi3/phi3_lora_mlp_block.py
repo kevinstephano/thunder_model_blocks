@@ -2,7 +2,7 @@ from collections import OrderedDict
 import torch
 from torch import nn
 import sys
-from utils import runner
+from thunder_model_blocks.utils import runner
 
 from nemo.collections.llm.peft.lora import patch_linear_module
 from transformers import AutoConfig
