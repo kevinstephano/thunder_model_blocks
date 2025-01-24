@@ -62,7 +62,7 @@ def run(sys_argv, model_name, batch_size, sequence_length, model, input_fn, mode
 
     parser = argparse.ArgumentParser(description='Rope Examples')
     parser.add_argument('--nsys', default=False, action="store_true", help='Disables torch.profiler for nsys.')
-    parser.add_argument('--warmup', default=5, type=int, help='Warmup iterations.')
+    parser.add_argument('--warmup', default=10, type=int, help='Warmup iterations.')
     parser.add_argument('--iters', default=10, type=int, help='Timing iterations.')
     parser.add_argument('--execs', nargs='+', type=str, help='List of executor names to time.', default=["Torch-Eager", "torch.compile", "Thunder-torch.compile", "Thunder-default", "Thunder-nvFuser"], required=False)
     parser.add_argument('--thunder_trace', default=False, action="store_true", help='Prints a Thunder trace.')
