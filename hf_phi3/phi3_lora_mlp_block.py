@@ -1,3 +1,4 @@
+from collections import OrderedDict
 import torch
 from torch import nn
 import sys
@@ -5,22 +6,23 @@ from utils import runner
 
 from nemo.collections.llm.peft.lora import patch_linear_module
 from transformers import AutoConfig
-from transformers.models.qwen2.modeling_qwen2 import Qwen2MLP
+from transformers.models.phi3.modeling_phi3 import Phi3MLP
 
-config = AutoConfig.from_pretrained("Qwen/Qwen2.5-7B-Instruct")
+config = AutoConfig.from_pretrained("microsoft/Phi-3.5-mini-instruct")
 
 config.batch_size = 1
-config.seq_len = 4096
+config.seq_len = 8192
+config._attn_implementation = "sdpa"
 configs = {}
 configs[config.name_or_path] = config
 
 class MyModel(torch.nn.Module):
     def __init__(self, config):
         super(MyModel, self).__init__()
-        self.model = Qwen2MLP(config)
+        self.model = Phi3MLP(config)
 
     def forward(self, hidden_states: torch.Tensor):
-        out = self.model(hidden_states)
+        out = self.model(hidden_states=hidden_states)
         return (out,)
 
 if __name__ == "__main__":

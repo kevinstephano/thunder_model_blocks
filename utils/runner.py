@@ -57,7 +57,7 @@ def run(sys_argv, model_name, batch_size, sequence_length, model, input_fn, mode
     assert pd is not None, "Pandas is not installed!"
     xfs = install_transformers()
     assert xfs is not None, "Transformers is not installed!" 
-    pd.options.display.max_colwidth=100
+    pd.options.display.max_colwidth=200
     pd.options.display.float_format = '{:.3f}'.format
 
     parser = argparse.ArgumentParser(description='Rope Examples')

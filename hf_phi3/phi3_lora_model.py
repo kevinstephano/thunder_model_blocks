@@ -9,12 +9,11 @@ from transformers.models.phi3 import Phi3ForCausalLM
 
 config = AutoConfig.from_pretrained("microsoft/Phi-3.5-mini-instruct")
 
-phi3_cfg = config
-phi3_cfg.batch_size = 1
-phi3_cfg.seq_len = 8192
-phi3_cfg._attn_implementation = "sdpa"
+config.batch_size = 1
+config.seq_len = 8192
+config._attn_implementation = "sdpa"
 configs = {}
-configs[phi3_cfg.name_or_path] = phi3_cfg
+configs[config.name_or_path] = config
 
 class MyModel(torch.nn.Module):
     def __init__(self, config):

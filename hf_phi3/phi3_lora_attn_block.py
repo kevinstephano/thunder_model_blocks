@@ -6,32 +6,20 @@ from utils import runner
 from nemo.collections.llm.peft.lora import patch_linear_module
 from transformers import AutoConfig
 from transformers.cache_utils import DynamicCache
-from transformers.models.qwen2.modeling_qwen2 import Qwen2DecoderLayer
+from transformers.models.phi3.modeling_phi3 import Phi3Attention
 
-config = AutoConfig.from_pretrained("Qwen/Qwen2.5-7B-Instruct")
+config = AutoConfig.from_pretrained("microsoft/Phi-3.5-mini-instruct")
 
 config.batch_size = 1
-config.seq_len = 4096
+config.seq_len = 8192
 config._attn_implementation = "sdpa"
 configs = {}
 configs[config.name_or_path] = config
 
-"""
-Hidden States torch.Size([1, 4096, 3584]) (14680064, 3584, 1) torch.bfloat16
-Position Embs Cos torch.Size([1, 4096, 128]) (524288, 128, 1) torch.bfloat16
-Position Embs Sin torch.Size([1, 4096, 128]) (524288, 128, 1) torch.bfloat16
-attn mask? None
-past_key_value DynamicCache()
-cache_position tensor([   0,    1,    2,  ..., 4093, 4094, 4095], device='cuda:0')
-Kwargs {'position_ids': tensor([[   0,    1,    2,  ..., 4093, 4094, 4095]], device='cuda:0'), 
-        'output_attentions': False, 
-        'use_cache': True}
-"""
-
 class MyModel(torch.nn.Module):
     def __init__(self, config):
         super(MyModel, self).__init__()
-        self.model = Qwen2DecoderLayer(config, 0)
+        self.model = Phi3Attention(config, 0)
 
     def forward(
         self,
@@ -41,14 +29,14 @@ class MyModel(torch.nn.Module):
         position_ids,
         ) :
         kwargs = {"position_ids": position_ids, "output_attentions": False, "use_cache": True}
-        out = self.model(hidden_states=hidden_states,
+        out,_ = self.model(hidden_states=hidden_states,
                          position_embeddings=position_embeddings,
                          attention_mask=None,
                          past_key_value=DynamicCache(),
                          cache_position=cache_position,
                          **kwargs
                          )
-        return out
+        return (out,)
 
 if __name__ == "__main__":
     for name,cfg in configs.items():
