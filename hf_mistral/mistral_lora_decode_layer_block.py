@@ -3,8 +3,9 @@ import sys
 import torch
 from torch import nn
 from thunder_model_blocks.utils import runner
+from thunder_model_blocks.utils.lora import patch_linear_module
+#from nemo.collections.llm.peft.lora import patch_linear_module
 
-from nemo.collections.llm.peft.lora import patch_linear_module
 from transformers.cache_utils import DynamicCache
 from transformers.models.mistral.modeling_mistral import MistralDecoderLayer, MistralConfig
 
@@ -63,15 +64,28 @@ class MyModel(torch.nn.Module):
         cache_position,
         position_ids,
         ) :
-        kwargs = {"position_ids": position_ids, "output_attentions": False, "use_cache": True}
+        kwargs = {}
         out = self.model(hidden_states=hidden_states,
-                         position_embeddings=position_embeddings,
                          attention_mask=None,
+                         position_ids=position_ids,
                          past_key_value=DynamicCache(),
+                         use_cache=True,
                          cache_position=cache_position,
+                         position_embeddings=position_embeddings,
                          **kwargs
                          )
         return out
+
+"""
+hidden_states torch.Size([1, 4096, 5120]) (20971520, 5120, 1) torch.bfloat16
+position_ids torch.Size([1, 4096]) (4096, 1) torch.int64
+DynamicCache()
+True
+cache_position torch.Size([4096]) (1,) torch.int64
+position_embeddings[0] torch.Size([1, 4096, 128]) (524288, 128, 1) torch.bfloat16
+position_embeddings[1] torch.Size([1, 4096, 128]) (524288, 128, 1) torch.bfloat16
+kwargs {}
+"""
 
 if __name__ == "__main__":
     for name,cfg in configs.items():
@@ -79,8 +93,8 @@ if __name__ == "__main__":
         def inputs():
             hidden_states = torch.randn(cfg.batch_size, cfg.seq_len, cfg.hidden_size, device='cuda', dtype=torch.bfloat16, requires_grad=True)
             position_embeddings = (
-                    torch.randn(cfg.batch_size, cfg.seq_len, attn_hidden_size, device='cuda', dtype=torch.bfloat16, requires_grad=False),
-                    torch.randn(cfg.batch_size, cfg.seq_len, attn_hidden_size, device='cuda', dtype=torch.bfloat16, requires_grad=False),
+                    torch.randn(cfg.batch_size, cfg.seq_len, cfg.head_dim, device='cuda', dtype=torch.bfloat16, requires_grad=False),
+                    torch.randn(cfg.batch_size, cfg.seq_len, cfg.head_dim, device='cuda', dtype=torch.bfloat16, requires_grad=False),
                     )
             cache_position = torch.arange(cfg.seq_len, device='cuda')
             position_ids = torch.arange(cfg.seq_len, device='cuda')

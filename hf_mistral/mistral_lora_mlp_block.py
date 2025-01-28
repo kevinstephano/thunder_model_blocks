@@ -3,8 +3,9 @@ import sys
 import torch
 from torch import nn
 from thunder_model_blocks.utils import runner
+from thunder_model_blocks.utils.lora import patch_linear_module
+#from nemo.collections.llm.peft.lora import patch_linear_module
 
-from nemo.collections.llm.peft.lora import patch_linear_module
 from transformers.models.mistral.modeling_mistral import MistralMLP, MistralConfig
 
 '''

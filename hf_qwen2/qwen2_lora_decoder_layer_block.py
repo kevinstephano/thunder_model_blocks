@@ -2,8 +2,9 @@ import torch
 from torch import nn
 import sys
 from thunder_model_blocks.utils import runner
+from thunder_model_blocks.utils.lora import patch_linear_module
+#from nemo.collections.llm.peft.lora import patch_linear_module
 
-from nemo.collections.llm.peft.lora import patch_linear_module
 from transformers import AutoConfig
 from transformers.cache_utils import DynamicCache
 from transformers.models.qwen2.modeling_qwen2 import Qwen2DecoderLayer

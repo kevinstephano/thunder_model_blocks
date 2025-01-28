@@ -2,8 +2,9 @@ import torch
 from torch import nn
 import sys
 from thunder_model_blocks.utils import runner
+from thunder_model_blocks.utils.lora import patch_linear_module
+#from nemo.collections.llm.peft.lora import patch_linear_module
 
-from nemo.collections.llm.peft.lora import patch_linear_module
 from transformers import AutoConfig
 from transformers.cache_utils import DynamicCache
 from transformers.models.phi3.modeling_phi3 import Phi3Attention
@@ -28,12 +29,14 @@ class MyModel(torch.nn.Module):
         cache_position,
         position_ids,
         ) :
-        kwargs = {"position_ids": position_ids, "output_attentions": False, "use_cache": True}
+        kwargs = {}
         out,_ = self.model(hidden_states=hidden_states,
-                         position_embeddings=position_embeddings,
                          attention_mask=None,
+                         position_ids=position_ids,
                          past_key_value=DynamicCache(),
+                         use_cache=True,
                          cache_position=cache_position,
+                         position_embeddings=position_embeddings,
                          **kwargs
                          )
         return (out,)
