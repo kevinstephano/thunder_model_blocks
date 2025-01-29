@@ -8,6 +8,7 @@ from thunder.dynamo import thunderfx
 import timeit
 import torch
 from torch.profiler import profile, ProfilerActivity
+import traceback
 
 def install_pandas():
     """
@@ -148,8 +149,9 @@ def run(sys_argv, model_name, batch_size, sequence_length, model, input_fn, mode
                     else:
                         loss += y[idx]
 
-                for param in exec_model.parameters():
-                    param.grad = None
+                if hasattr(exec_model, "parameters"): 
+                    for param in exec_model.parameters():
+                        param.grad = None
 
                 if model_has_loss:
                     loss.backward()
@@ -202,8 +204,9 @@ def run(sys_argv, model_name, batch_size, sequence_length, model, input_fn, mode
                 torch.cuda.nvtx.range_pop()
 
                 torch.cuda.nvtx.range_push("Grad Generation")
-                for param in exec_model.parameters():
-                    param.grad = None
+                if hasattr(exec_model, "parameters"): 
+                    for param in exec_model.parameters():
+                        param.grad = None
                 if not model_has_loss and grad_fn is not None:
                     grads = grad_fn()
                 torch.cuda.nvtx.range_pop()
@@ -257,6 +260,7 @@ def run(sys_argv, model_name, batch_size, sequence_length, model, input_fn, mode
         try:
             fwd_kernels, fwd_time, bwd_kernels, bwd_time, wallclock_time = run_model()
         except Exception as e:
+            traceback.print_exc()
             print("Model Exception!", e)
         torch.cuda.nvtx.range_pop()
 
