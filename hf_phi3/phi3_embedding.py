@@ -5,7 +5,7 @@ from thunder_model_blocks.utils import runner
 from thunder_model_blocks.utils.lora import patch_linear_module
 #from nemo.collections.llm.peft.lora import patch_linear_module
  
-from transformers import AutoModelForCausalLM
+from transformers import AutoConfig
 from transformers.models.phi3 import Phi3PreTrainedModel
  
 config = AutoConfig.from_pretrained("microsoft/Phi-3.5-mini-instruct")
@@ -19,7 +19,7 @@ class MyModel(Phi3PreTrainedModel):
     def __init__(self, config):
         super().__init__(config)
         self.padding_idx = config.pad_token_id
-        self.embed_tokens = nn.Embedding(config.vocab_size, config.hidden_size, config.padding_idx)
+        self.embed_tokens = nn.Embedding(config.vocab_size, config.hidden_size, self.padding_idx)
 
         # Initialize weights and apply final processing
         self.post_init()
