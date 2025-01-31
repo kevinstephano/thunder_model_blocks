@@ -55,7 +55,7 @@ def install_transformers():
             print("pip install transformers")
             return None
 
-def run(sys_argv, model_name, config, module, input_fn, module_has_loss=False, grad_fn=None) : 
+def run(sys_argv, model_name, config, module, input_fn, module_has_loss=False, grad_fn=None, inference=False) : 
     pd = install_pandas()
     assert pd is not None, "Pandas is not installed!"
     xfs = install_transformers()
@@ -111,6 +111,8 @@ def run(sys_argv, model_name, config, module, input_fn, module_has_loss=False, g
             if isinstance(module, torch.nn.Linear):
                 module = patch_linear_module(module, dropout=0.0)
     model = model.cuda().to(dtype)
+    if inference:
+        model.requires_grad_(False).eval()
 
     # setup inputs
     local_input_fn = partial(input_fn, dtype)
