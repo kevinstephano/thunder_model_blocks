@@ -1,158 +1,11 @@
-import json
 import sys
 import torch
-from torch import nn
 from typing import Tuple
+
 from thunder_model_blocks.utils import runner
-from transformers.models.phi3 import Phi3Config
+from thunder_model_blocks.hf_phi3 import phi3_config
 
-"""
-# Example to download model and config
-from transformers import AutoConfig, AutoModel
-model = AutoModel.from_pretrained("microsoft/Phi-3.5-mini-instruct")
-config = AutoConfig.from_pretrained("microsoft/Phi-3.5-mini-instruct")
-"""
-
-phi35_cfg_str = r'''{
-  "_name_or_path": "microsoft/Phi-3.5-mini-instruct",
-  "architectures": [
-    "Phi3ForCausalLM"
-  ],
-  "attention_bias": false,
-  "attention_dropout": 0.0,
-  "auto_map": {
-    "AutoConfig": "microsoft/Phi-3.5-mini-instruct--configuration_phi3.Phi3Config",
-    "AutoModelForCausalLM": "microsoft/Phi-3.5-mini-instruct--modeling_phi3.Phi3ForCausalLM"
-  },
-  "bos_token_id": 1,
-  "embd_pdrop": 0.0,
-  "eos_token_id": 32000,
-  "hidden_act": "silu",
-  "hidden_size": 3072,
-  "initializer_range": 0.02,
-  "intermediate_size": 8192,
-  "max_position_embeddings": 131072,
-  "model_type": "phi3",
-  "num_attention_heads": 32,
-  "num_hidden_layers": 32,
-  "num_key_value_heads": 32,
-  "original_max_position_embeddings": 4096,
-  "pad_token_id": 32000,
-  "resid_pdrop": 0.0,
-  "rms_norm_eps": 1e-05,
-  "rope_scaling": {
-    "long_factor": [
-      1.0800000429153442,
-      1.1100000143051147,
-      1.1399999856948853,
-      1.340000033378601,
-      1.5899999141693115,
-      1.600000023841858,
-      1.6200000047683716,
-      2.620000123977661,
-      3.2300000190734863,
-      3.2300000190734863,
-      4.789999961853027,
-      7.400000095367432,
-      7.700000286102295,
-      9.09000015258789,
-      12.199999809265137,
-      17.670000076293945,
-      24.46000099182129,
-      28.57000160217285,
-      30.420001983642578,
-      30.840002059936523,
-      32.590003967285156,
-      32.93000411987305,
-      42.320003509521484,
-      44.96000289916992,
-      50.340003967285156,
-      50.45000457763672,
-      57.55000305175781,
-      57.93000411987305,
-      58.21000289916992,
-      60.1400032043457,
-      62.61000442504883,
-      62.62000274658203,
-      62.71000289916992,
-      63.1400032043457,
-      63.1400032043457,
-      63.77000427246094,
-      63.93000411987305,
-      63.96000289916992,
-      63.970001220703125,
-      64.02999877929688,
-      64.06999969482422,
-      64.08000183105469,
-      64.12000274658203,
-      64.41000366210938,
-      64.4800033569336,
-      64.51000213623047,
-      64.52999877929688,
-      64.83999633789062
-    ],
-   "short_factor": [
-      1.0,
-      1.0199999809265137,
-      1.0299999713897705,
-      1.0299999713897705,
-      1.0499999523162842,
-      1.0499999523162842,
-      1.0499999523162842,
-      1.0499999523162842,
-      1.0499999523162842,
-      1.0699999332427979,
-      1.0999999046325684,
-      1.1099998950958252,
-      1.1599998474121094,
-      1.1599998474121094,
-      1.1699998378753662,
-      1.2899998426437378,
-      1.339999794960022,
-      1.679999828338623,
-      1.7899998426437378,
-      1.8199998140335083,
-      1.8499997854232788,
-      1.8799997568130493,
-      1.9099997282028198,
-      1.9399996995925903,
-      1.9899996519088745,
-      2.0199997425079346,
-      2.0199997425079346,
-      2.0199997425079346,
-      2.0199997425079346,
-      2.0199997425079346,
-      2.0199997425079346,
-      2.0299997329711914,
-      2.0299997329711914,
-      2.0299997329711914,
-      2.0299997329711914,
-      2.0299997329711914,
-      2.0299997329711914,
-      2.0299997329711914,
-      2.0299997329711914,
-      2.0299997329711914,
-      2.0799996852874756,
-      2.0899996757507324,
-      2.189999580383301,
-      2.2199995517730713,
-      2.5899994373321533,
-      2.729999542236328,
-      2.749999523162842,
-      2.8399994373321533
-    ],
-    "type": "longrope"
-  },
-  "rope_theta": 10000.0,
-  "sliding_window": 262144,
-  "tie_word_embeddings": false,
-  "torch_dtype": "bfloat16",
-  "transformers_version": "4.46.3",
-  "use_cache": true,
-  "vocab_size": 32064
-}'''
-
-class Phi3RotaryEmbedding(nn.Module):
+class Phi3RotaryEmbedding(torch.nn.Module):
     def __init__(self, dim, max_position_embeddings=2048, base=10000.0, device=None):
         super().__init__()
 
@@ -223,10 +76,10 @@ def apply_rotary_pos_emb(q, k, cos, sin, position_ids=None, unsqueeze_dim=1):
     k_embed = (k * cos) + (rotate_half(k) * sin)
     return q_embed, k_embed
 
-class HfPhi3Rope(nn.Module):
+class HfPhi3Rope(torch.nn.Module):
     """Multi-headed attention from 'Attention Is All You Need' paper"""
 
-    def __init__(self, config: Phi3Config):
+    def __init__(self, config):
         super().__init__()
         self.config = config
 
@@ -285,25 +138,20 @@ class HfPhi3Rope(nn.Module):
 
         return query_states, key_states, value_states
 
-phi3_cfg = Phi3Config.from_dict(json.loads(phi35_cfg_str))
-phi3_cfg.batch_size = 1
-phi3_cfg.seq_len = 8192
-configs = {}
-configs[phi3_cfg.name_or_path] = phi3_cfg
-
 if __name__ == "__main__":
-    #print(configs["Phi3"].to_json_string(use_diff=False))
+    config = phi3_config.config()
+    configs = {config.name_or_path: config}
+
     for name,cfg in configs.items():
         head_dim = cfg.hidden_size // cfg.num_attention_heads
-        def inputs():
+        def inputs(dtype, batch_size=cfg.batch_size, seq_len=cfg.seq_len):
             args = {
-                "qkv": torch.randn(cfg.batch_size, cfg.seq_len, cfg.num_attention_heads * head_dim + 2 * (cfg.num_key_value_heads * head_dim), device='cuda', dtype=torch.bfloat16, requires_grad=True),
-                "position_ids": torch.arange(0, cfg.seq_len, device='cuda').unsqueeze(0),
+                "qkv": torch.randn(batch_size, seq_len, cfg.num_attention_heads * head_dim + 2 * (cfg.num_key_value_heads * head_dim), device='cuda', dtype=dtype, requires_grad=True),
+                "position_ids": torch.arange(0, seq_len, device='cuda').unsqueeze(0),
             }
             return args
-        def grads():
-            grad = torch.randn(cfg.batch_size, cfg.num_attention_heads, cfg.seq_len, head_dim, device='cuda', dtype=torch.bfloat16, requires_grad=False)
+        def grads(dtype, batch_size=cfg.batch_size, seq_len=cfg.seq_len):
+            grad = torch.randn(batch_size, cfg.num_attention_heads, seq_len, head_dim, device='cuda', dtype=dtype, requires_grad=False)
             return grad
  
-        model = HfPhi3Rope(cfg).cuda().bfloat16()
-        runner.run(sys.argv, name, cfg.batch_size, cfg.seq_len, model, inputs, False, grads)
+        runner.run(sys.argv, name, cfg, HfPhi3Rope, inputs, module_has_loss=False, grad_fn=grads)
