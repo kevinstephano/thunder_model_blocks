@@ -1,48 +1,11 @@
-import json
 import sys
 import torch
-from torch import nn
 from typing import Tuple
+
 from thunder_model_blocks.utils import runner
-from transformers.models.mistral import MistralConfig
+from thunder_model_blocks.hf_mistral import mistral_config
 
-'''
-# Example to download model and config
-from transformers import AutoConfig, AutoModel
-model = AutoModel.from_pretrained("mistralai/Mistral-Nemo-Base-2407")
-config = AutoConfig.from_pretrained("mistralai/Mistral-Nemo-Base-2407")
-'''
-
-mistral_cfg_str = r'''{
-  "_name_or_path": "mistralai/Mistral-Nemo-Base-2407",
-  "architectures": [
-    "MistralForCausalLM"
-  ],
-  "attention_dropout": 0.0,
-  "bos_token_id": 1,
-  "eos_token_id": 2,
-  "head_dim": 128,
-  "hidden_act": "silu",
-  "hidden_size": 5120,
-  "initializer_range": 0.02,
-  "intermediate_size": 14336,
-  "max_position_embeddings": 128000,
-  "model_type": "mistral",
-  "num_attention_heads": 32,
-  "num_hidden_layers": 40,
-  "num_key_value_heads": 8,
-  "rms_norm_eps": 1e-05,
-  "rope_theta": 1000000.0,
-  "sliding_window": null,
-  "tie_word_embeddings": false,
-  "torch_dtype": "bfloat16",
-  "transformers_version": "4.43.3",
-  "use_cache": true,
-  "vocab_size": 131072
-}
-'''
-
-class MistralRotaryEmbedding(nn.Module):
+class MistralRotaryEmbedding(torch.nn.Module):
     def __init__(self, dim, max_position_embeddings=2048, base=10000.0, device=None):
         super().__init__()
 
@@ -53,8 +16,6 @@ class MistralRotaryEmbedding(nn.Module):
         self.register_buffer("inv_freq", inv_freq, persistent=False)
 
     @torch.no_grad()
-    # copied from transformers.models.llama.modeling_llama.LlamaRotaryEmbedding.forward
-    # TODO(joao): add me back asap :)
     def forward(self, x, position_ids):
         # x: [bs, num_attention_heads, seq_len, head_size]
         inv_freq_expanded = self.inv_freq[None, :, None].float().expand(position_ids.shape[0], -1, 1)
@@ -114,8 +75,8 @@ def repeat_kv(hidden_states: torch.Tensor, n_rep: int) -> torch.Tensor:
     hidden_states = hidden_states[:, :, None, :, :].expand(batch, num_key_value_heads, n_rep, slen, head_dim)
     return hidden_states.reshape(batch, num_key_value_heads * n_rep, slen, head_dim)
 
-class MistralNemoRope(nn.Module):
-    def __init__(self, config: MistralConfig):
+class MistralNemoRope(torch.nn.Module):
+    def __init__(self, config):
         super().__init__()
         self.config = config
 
@@ -159,26 +120,21 @@ class MistralNemoRope(nn.Module):
         value_states = repeat_kv(value_states, self.num_key_value_groups)
         return query_states, key_states, value_states
 
-mistral_cfg = MistralConfig.from_dict(json.loads(mistral_cfg_str))
-mistral_cfg.batch_size = 1
-mistral_cfg.seq_len = 4096
-configs = {}
-configs[mistral_cfg.name_or_path] = mistral_cfg
-
 if __name__ == "__main__":
+    config = mistral_config.config()
+    configs = {config.name_or_path: config}
+
     for name,cfg in configs.items():
-        head_dim = cfg.hidden_size // cfg.num_attention_heads
-        def inputs():
+        def inputs(dtype, batch_size=cfg.batch_size, seq_len=cfg.seq_len):
             args = {
-                "query_in_states": torch.randn(cfg.batch_size, cfg.seq_len, cfg.num_attention_heads * cfg.head_dim, device='cuda', dtype=torch.bfloat16, requires_grad=True),
-                "key_in_states": torch.randn(cfg.batch_size, cfg.seq_len, cfg.num_key_value_heads * cfg.head_dim, device='cuda', dtype=torch.bfloat16, requires_grad=True),
-                "value_in_states": torch.randn(cfg.batch_size, cfg.seq_len, cfg.num_key_value_heads * cfg.head_dim, device='cuda', dtype=torch.bfloat16, requires_grad=True),
-                "position_ids": torch.arange(0, cfg.seq_len, device='cuda').unsqueeze(0),
+                "query_in_states": torch.randn(batch_size, seq_len, cfg.num_attention_heads * cfg.head_dim, device='cuda', dtype=dtype, requires_grad=True),
+                "key_in_states": torch.randn(batch_size, seq_len, cfg.num_key_value_heads * cfg.head_dim, device='cuda', dtype=dtype, requires_grad=True),
+                "value_in_states": torch.randn(batch_size, seq_len, cfg.num_key_value_heads * cfg.head_dim, device='cuda', dtype=dtype, requires_grad=True),
+                "position_ids": torch.arange(0, seq_len, device='cuda').unsqueeze(0),
             }
             return args 
-        def grads():
-            grad = torch.randn(cfg.batch_size, cfg.num_attention_heads, cfg.seq_len, cfg.head_dim, device='cuda', dtype=torch.bfloat16, requires_grad=False)
+        def grads(dtype, batch_size=cfg.batch_size, seq_len=cfg.seq_len):
+            grad = torch.randn(batch_size, cfg.num_attention_heads, seq_len, cfg.head_dim, device='cuda', dtype=dtype, requires_grad=False)
             return grad
  
-        model = MistralNemoRope(cfg).cuda().bfloat16()
-        runner.run(sys.argv, name, cfg.batch_size, cfg.seq_len, model, inputs, False, grads)
+        runner.run(sys.argv, name, cfg, MistralNemoRope, inputs, module_has_loss=False, grad_fn=grads)
