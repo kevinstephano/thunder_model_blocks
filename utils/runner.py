@@ -72,7 +72,7 @@ def run(sys_argv, model_name, config, module, input_fn, module_has_loss=False, g
     parser.add_argument('--iters', default=10, type=int, help='Timing iterations.')
     parser.add_argument('--execs', nargs='+', type=str, help='List of executor names to time.', required=False,
         default=["Torch-Eager", "torch.compile", "Thunder-torch.compile", "Thunder-nvFuser"],
-        choices=["Torch-Eager", "torch.compile", "Thunder-torch.compile", "Thunder-default", "Thunder-nvFuser", "Thunder-nvFuser-more-ops"])
+        choices=["Torch-Eager", "torch.compile", "Thunder-Torch", "Thunder-torch.compile", "Thunder-default", "Thunder-nvFuser", "Thunder-nvFuser-more-ops"])
     parser.add_argument('--thunder_trace', default=False, action="store_true", help='Prints a Thunder trace.')
     parser.add_argument('--nvfuser_repro', default=False, action="store_true", help='Prints an nvFuser reproduction script.')
     args,extra_args = parser.parse_known_args(args=sys_argv[1:])
