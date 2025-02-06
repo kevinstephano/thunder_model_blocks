@@ -66,6 +66,7 @@ def run(sys_argv, model_name, config, module, input_fn, module_has_loss=False, g
 
     parser = argparse.ArgumentParser(description='Rope Examples')
     parser.add_argument('--nsys', default=False, action="store_true", help='Disables torch.profiler for nsys.')
+    parser.add_argument('--csv', default=False, action="store_true", help='Print CSV instead of default Pandas DataFrame.')
     parser.add_argument('--warmup', default=10, type=int, help='Warmup iterations.')
     parser.add_argument('--dtype', default='bfloat16', type=str, help="Set model and activation data types.")
     parser.add_argument('--batch_sizes', nargs='*', default=None, type=int, help="List of batch sizes. The default of None says to use the model default.")
@@ -319,6 +320,9 @@ def run(sys_argv, model_name, config, module, input_fn, module_has_loss=False, g
             df["Wall-Spdup"] = df["Wall-Time(ms)"].rdiv(df.loc["Torch-Eager", 'Wall-Time(ms)'])
             new_order = ["Model", "DType", "Batch", "Seq-Len", "Fwd-Krnls", "Fwd-K-Time(ms)", "Fwd-K-Spdup", "Bwd-Krnls", "Bwd-K-Time(ms)", "Bwd-K-Spdup", "Krnls", "K-Time(ms)", "K-Spdup", "Wall-Time(ms)", "Wall-Spdup", "Overhead(ms)"]
             df = df[new_order]
-        print(df)
+        if args.csv:
+            print(df.to_csv())
+        else:
+            print(df)
 
     return None
