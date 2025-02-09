@@ -6,6 +6,7 @@ import subprocess
 import sys
 import thunder
 from thunder.dynamo import thunderfx
+from time import sleep
 import timeit
 import torch
 from torch.profiler import profile, ProfilerActivity
@@ -71,7 +72,8 @@ def run(sys_argv, model_name, config, module, input_fn, module_has_loss=False, g
     parser.add_argument('--dtype', default='bfloat16', type=str, help="Set model and activation data types.")
     parser.add_argument('--batch_sizes', nargs='*', default=None, type=int, help="List of batch sizes. The default of None says to use the model default.")
     parser.add_argument('--seq_lens', nargs='*', default=None, type=int, help="List of sequence lengths. The default of None says to use the model default.")
-    parser.add_argument('--iters', default=10, type=int, help='Timing iterations.')
+    parser.add_argument('--wallclock_iters', default=10, type=int, help='Wallclock Timing iterations.')
+    parser.add_argument('--cupti_iters', default=1, type=int, help='CUPTI Timing iterations.')
     parser.add_argument('--execs', nargs='+', type=str, help='List of executor names to time.', required=False,
         default=["Torch-Eager", "torch.compile", "Thunder-torch.compile", "Thunder-nvFuser"],
         choices=["Torch-Eager", "torch.compile", "Thunder-Torch", "Thunder-torch.compile", "Thunder-default", "Thunder-nvFuser", "Thunder-nvFuser-more-ops"])
@@ -132,6 +134,8 @@ def run(sys_argv, model_name, config, module, input_fn, module_has_loss=False, g
 
         benchmark_data = []
         for name, exec in executors.items():
+            if ("Thunder" in name) or ("torch.compile" in name):
+                torch._dynamo.reset()
             exec_model = exec(model)
  
             if ("Thunder" in name) and args.thunder_trace:
@@ -220,6 +224,9 @@ def run(sys_argv, model_name, config, module, input_fn, module_has_loss=False, g
                 if not args.nsys:
                     with profile(activities=[ProfilerActivity.CUDA]) as prof: 
                         y = exec_model(**input_dict)
+                        # NOTE: the THunder-nvFuser executor interfers with CUPTI
+                        # collection without putting python to sleep for 5 seconds
+                        sleep(5)
  
                     for evt in prof.events():
                         if evt.device_time > 0.0:
@@ -255,6 +262,10 @@ def run(sys_argv, model_name, config, module, input_fn, module_has_loss=False, g
                                 loss.backward()
                             else:
                                 loss.backward(grads)
+                            # NOTE: the THunder-nvFuser executor interfers with CUPTI
+                            # collection without putting python to sleep for 5 seconds
+                            sleep(5)
+
                         for evt in prof.events():
                             if evt.device_time > 0.0:
                                 bwd_kernels += 1
@@ -272,19 +283,19 @@ def run(sys_argv, model_name, config, module, input_fn, module_has_loss=False, g
             def run_model():
                 wallclock_time_iter(args.warmup)
                 
-                wallclock_time = wallclock_time_iter(args.iters) / args.iters * 1000.0
+                wallclock_time = wallclock_time_iter(args.wallclock_iters) / args.wallclock_iters * 1000.0
                
                 fwd_kernel_time = 0
                 bwd_kernel_time = 0
                 fwd_kernels = 0
                 bwd_kernels = 0
-                for _ in range(args.iters):
+                for _ in range(args.cupti_iters):
                     fwd_kernels, fwd_time, bwd_kernels, bwd_time = kernel_time_iter()
                     fwd_kernel_time += fwd_time
                     bwd_kernel_time += bwd_time
  
-                fwd_kernel_time = fwd_kernel_time / args.iters / 1.e3
-                bwd_kernel_time = bwd_kernel_time / args.iters / 1.e3
+                fwd_kernel_time = fwd_kernel_time / args.cupti_iters / 1.e3
+                bwd_kernel_time = bwd_kernel_time / args.cupti_iters / 1.e3
  
                 return fwd_kernels, fwd_kernel_time, bwd_kernels, bwd_kernel_time, wallclock_time
  
