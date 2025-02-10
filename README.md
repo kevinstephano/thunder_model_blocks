@@ -6,6 +6,12 @@
 * `--nsys`: Turns off torch.profiler usage to allow for NSight Systems profiling.
 * `--execs`: Allows you to specify a subset of executors like Thunder-nvFuser.
 
+## To install
+```
+# Please use `-e` especially if you are modifying the script
+pip install . [-e]
+```
+
 ## To run
 ```
 python [Model Dir]/[Model Name].py
