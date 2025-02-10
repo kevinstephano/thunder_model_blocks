@@ -8,7 +8,8 @@
 
 ## To install
 ```
-pip install .
+# Please use `-e` especially if you are modifying the script
+pip install . [-e]
 ```
 
 ## To run
