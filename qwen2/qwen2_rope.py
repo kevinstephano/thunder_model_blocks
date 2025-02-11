@@ -3,7 +3,7 @@ import torch
 from typing import Tuple
 
 from thunder_model_blocks.utils import runner
-from thunder_model_blocks.hf_qwen2 import qwen2_config
+from thunder_model_blocks.qwen2 import qwen2_config
 
 def rotate_half(x):
     """Rotates half the hidden dims of the input."""

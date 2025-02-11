@@ -2,7 +2,7 @@ import sys
 import torch
 
 from thunder_model_blocks.utils import runner
-from thunder_model_blocks.hf_llama import llama_config
+from thunder_model_blocks.llama import llama_config
 from transformers.models.llama import LlamaForCausalLM
 
 class MyModel(torch.nn.Module):

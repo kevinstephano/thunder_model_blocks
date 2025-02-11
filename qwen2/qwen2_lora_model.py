@@ -2,7 +2,7 @@ import sys
 import torch
 
 from thunder_model_blocks.utils import runner
-from thunder_model_blocks.hf_qwen2 import qwen2_config
+from thunder_model_blocks.qwen2 import qwen2_config
 from transformers.models.qwen2 import Qwen2ForCausalLM
 
 class MyModel(torch.nn.Module):
