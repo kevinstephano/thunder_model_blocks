@@ -5,6 +5,6 @@ executors="Torch-Eager Thunder-torch.compile Thunder-nvFuser"
 models=("phi3" "qwen2" "mistral")
 
 for benchmark in $models; do
-  cmd="python ../${benchmark}/${benchmark}_rope.py --seq_lens ${seqlens} --execs ${executors}"
+  cmd="python ../${benchmark}/${benchmark}_loss.py --seq_lens ${seqlens} --execs ${executors}"
   eval $cmd
 done
