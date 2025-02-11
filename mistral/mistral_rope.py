@@ -3,7 +3,7 @@ import torch
 from typing import Tuple
 
 from thunder_model_blocks.utils import runner
-from thunder_model_blocks.hf_mistral import mistral_config
+from thunder_model_blocks.mistral import mistral_config
 
 class MistralRotaryEmbedding(torch.nn.Module):
     def __init__(self, dim, max_position_embeddings=2048, base=10000.0, device=None):

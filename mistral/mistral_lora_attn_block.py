@@ -2,7 +2,7 @@ import sys
 import torch
 
 from thunder_model_blocks.utils import runner
-from thunder_model_blocks.hf_mistral import mistral_config
+from thunder_model_blocks.mistral import mistral_config
 from transformers.cache_utils import DynamicCache
 from transformers.models.mistral.modeling_mistral import MistralAttention
 
