@@ -100,7 +100,7 @@ def run(sys_argv, model_name, config, module, input_fn, module_has_loss=False, g
         elif exec == "Thunder-nvFuser":
             executors["Thunder-nvFuser"] = partial(thunderfx, executors=["apex", "cudnn","sdpa","nvfuser"])
         elif exec == "Thunder-nvFuser-more-ops":
-            executors["Thunder-nvFuser-more-ops"] = partial(thunderfx, executors=["cudnn","sdpa","nvfuser"], nv_enable_linear=True, nv_enable_matmul=True, nv_enable_embedding=True)
+            executors["Thunder-nvFuser-more-ops"] = partial(thunderfx, executors=["cudnn","sdpa","nvfuser"], nv_enable_linear=True, nv_enable_matmul=True, nv_enable_embedding=True, use_apex_cross_entropy=False)
         elif exec == "Thunder-torch.compile":
             executors["Thunder-torch.compile"] = partial(thunderfx, executors=["cudnn","torchcompile"])
         else:
