@@ -2,6 +2,7 @@ import json
 from transformers.models.gemma2 import Gemma2Config
 
 gemma2_cfg_str = r'''{
+  "_name_or_path": "google/gemma-2-9b-it",
   "architectures": [
     "Gemma2ForCausalLM"
   ],
