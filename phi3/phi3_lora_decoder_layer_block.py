@@ -3,7 +3,7 @@ import sys
 import torch
 
 from thunder_model_blocks.utils import runner
-from thunder_model_blocks.hf_phi3 import phi3_config
+from thunder_model_blocks.phi3 import phi3_config
 from transformers.cache_utils import DynamicCache
 from transformers.models.phi3.modeling_phi3 import Phi3DecoderLayer
 

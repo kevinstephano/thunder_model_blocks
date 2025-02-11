@@ -2,7 +2,7 @@ import sys
 import torch
 
 from thunder_model_blocks.utils import runner
-from thunder_model_blocks.hf_phi3 import phi3_config
+from thunder_model_blocks.phi3 import phi3_config
 from transformers.models.phi3 import Phi3ForCausalLM
 
 class MyModel(torch.nn.Module):
