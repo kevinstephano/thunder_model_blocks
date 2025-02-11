@@ -2,6 +2,7 @@ import argparse
 from collections import OrderedDict
 from functools import partial
 from itertools import product
+from nvfuser import FusionCache
 import subprocess
 import sys
 import thunder
@@ -136,6 +137,8 @@ def run(sys_argv, model_name, config, module, input_fn, module_has_loss=False, g
         for name, exec in executors.items():
             if ("Thunder" in name) or ("torch.compile" in name):
                 torch._dynamo.reset()
+            if ("nvFuser" in name) or ("default" in name):
+                FusionCache.get().reset()
             exec_model = exec(model)
  
             if ("Thunder" in name) and args.thunder_trace:
