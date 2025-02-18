@@ -8,7 +8,7 @@
 
 ## To run
 ```
-python [Model Dir]/[Model Name].py
+python thunder_model_blocks/[Model Dir]/[Model Name].py
 ```
 
 ## To install
