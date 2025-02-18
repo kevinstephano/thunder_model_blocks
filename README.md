@@ -8,5 +8,11 @@
 
 ## To run
 ```
-python [Model Dir]/[Model Name].py
+python thunder_model_blocks/[Model Dir]/[Model Name].py
+```
+
+## To install
+```
+# Please use `-e` especially if you are modifying the script
+pip install . [-e]
 ```
