@@ -193,8 +193,8 @@ def run(sys_argv, model_name, config, module, input_fn, module_has_loss=False, g
                         else:
                             loss += y[idx]
  
-                    if hasattr(exec_model, "parameters"): 
-                        for param in exec_model.parameters():
+                    if hasattr(model, "parameters"):
+                        for param in model.parameters():
                             param.grad = None
  
                     if module_has_loss:
@@ -251,8 +251,8 @@ def run(sys_argv, model_name, config, module, input_fn, module_has_loss=False, g
                     torch.cuda.nvtx.range_pop()
  
                     torch.cuda.nvtx.range_push("Grad Generation")
-                    if hasattr(exec_model, "parameters"): 
-                        for param in exec_model.parameters():
+                    if hasattr(model, "parameters"):
+                        for param in model.parameters():
                             param.grad = None
                     if not module_has_loss and local_grad_fn is not None:
                         grads = local_grad_fn()
