@@ -21,9 +21,11 @@ class MyModel(Qwen2PreTrainedModel):
 if __name__ == "__main__":
     cfg = qwen2_config.config()
 
-    def inputs(dtype, batch_size=cfg.batch_size, seq_len=cfg.seq_len):
-        hidden_states = torch.randn(batch_size, seq_len, cfg.hidden_size, device='cuda', dtype=dtype, requires_grad=True)
-        labels = torch.randint(0, cfg.vocab_size, (batch_size, seq_len), device='cuda', requires_grad=False)
-        return {"hidden_states": hidden_states, "labels": labels}
+    def inputs(dtype, batch_size=cfg.batch_size, seq_len=cfg.seq_len, packed_seq_fn=None):
+        args = {
+            "hidden_states": torch.randn(batch_size, seq_len, cfg.hidden_size, device='cuda', dtype=dtype, requires_grad=True),
+            "labels": torch.randint(0, cfg.vocab_size, (batch_size, seq_len), device='cuda', requires_grad=False),
+        }
+        return args
 
     runner.run(sys.argv, cfg.name_or_path, cfg, MyModel, inputs, module_has_loss=True)

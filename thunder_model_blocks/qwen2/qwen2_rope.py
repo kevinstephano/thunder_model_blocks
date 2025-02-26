@@ -78,7 +78,7 @@ if __name__ == "__main__":
     cfg = qwen2_config.config()
 
     head_dim = cfg.hidden_size // cfg.num_attention_heads
-    def inputs(dtype, batch_size=cfg.batch_size, seq_len=cfg.seq_len):
+    def inputs(dtype, batch_size=cfg.batch_size, seq_len=cfg.seq_len, packed_seq_fn=None):
         args = {
             "query_in_states": torch.randn(batch_size, seq_len, cfg.num_attention_heads * head_dim, device='cuda', dtype=dtype, requires_grad=True),
             "key_in_states": torch.randn(batch_size, seq_len, cfg.num_key_value_heads * head_dim, device='cuda', dtype=dtype, requires_grad=True),
