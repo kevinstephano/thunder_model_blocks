@@ -80,12 +80,17 @@ def run(sys_argv, model_name, config, module, input_fn, module_has_loss=False, g
         choices=["Torch-Eager", "torch.compile", "Thunder-Torch", "Thunder-torch.compile", "Thunder-default", "Thunder-nvFuser", "Thunder-nvFuser-more-ops"])
     parser.add_argument('--thunder_trace', default=False, action="store_true", help='Prints a Thunder trace.')
     parser.add_argument('--nvfuser_repro', default=False, action="store_true", help='Prints an nvFuser reproduction script.')
+    parser.add_argument('--attn', default='sdpa', type=str, help='Selects the type of Fused Attention.', choices=['sdpa', 'flash_attention', 'flash_attention_2'])
+    parser.add_argument('--lora', default=False, action="store_true", help='Enables Lora based PEFT benchmarking.')
     args,extra_args = parser.parse_known_args(args=sys_argv[1:])
 
     assert len(extra_args) == 0, "Unknown args: {}".format(extra_args)
 
     def eager_wrapper(model):
         return model
+
+    config._attn_implementation = args.attn
+    config.lora = args.lora
 
     executors = OrderedDict()
     for exec in args.execs:

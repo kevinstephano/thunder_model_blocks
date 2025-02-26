@@ -20,14 +20,13 @@ class MyModel(torch.nn.Module):
         return (out.loss,)
 
 if __name__ == "__main__":
-    config = qwen2_config.config()
-    config.lora = True
-    configs = {config.name_or_path: config}
+    cfg = qwen2_config.config()
 
-    for name,cfg in configs.items():
-        def inputs(dtype, batch_size=cfg.batch_size, seq_len=cfg.seq_len):
-            input_ids = torch.randint(0, cfg.vocab_size, (batch_size, seq_len), device='cuda', requires_grad=False)
-            labels = torch.randint(0, cfg.vocab_size, (batch_size, seq_len), device='cuda', requires_grad=False)
-            return {"input_ids": input_ids, "labels": labels}
+    def inputs(dtype, batch_size=cfg.batch_size, seq_len=cfg.seq_len, packed_seq_fn=None):
+        args = {
+            "input_ids": torch.randint(0, cfg.vocab_size, (batch_size, seq_len), device='cuda', requires_grad=False),
+            "labels": torch.randint(0, cfg.vocab_size, (batch_size, seq_len), device='cuda', requires_grad=False),
+        }
+        return args
 
-        runner.run(sys.argv, name, cfg, MyModel, inputs, module_has_loss=True)
+    runner.run(sys.argv, cfg.name_or_path, cfg, MyModel, inputs, module_has_loss=True)
