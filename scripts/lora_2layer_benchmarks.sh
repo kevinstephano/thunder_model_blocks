@@ -6,6 +6,6 @@ models=("phi3" "qwen2" "mistral" "gemma2" "starcoder2" "llama")
 d=$(pwd)
 
 for benchmark in ${models[@]}; do
-  cmd="python $d/thunder_model_blocks/${benchmark}/${benchmark}_rope.py --seq_lens ${seqlens} --execs ${executors}"
+  cmd="python $d/thunder_model_blocks/${benchmark}/${benchmark}_model.py --seq_lens ${seqlens} --lora --two_layers --execs ${executors}"
   eval $cmd
 done
