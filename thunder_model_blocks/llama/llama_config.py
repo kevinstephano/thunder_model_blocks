@@ -41,5 +41,4 @@ def config():
     config.batch_size = 1
     config.seq_len = 6
     config.num_hidden_layers = 1
-    config._attn_implementation = "sdpa"
     return config

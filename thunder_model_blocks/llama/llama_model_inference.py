@@ -24,18 +24,16 @@ class MyModel(torch.nn.Module):
         return (out,)
 
 if __name__ == "__main__":
-    config = llama_config.config()
-    configs = {config.name_or_path: config}
+    cfg = llama_config.config()
 
-    for name,cfg in configs.items():
-        def inputs(dtype, batch_size=cfg.batch_size, seq_len=cfg.seq_len):
-            args = dict(
-                #input_ids=torch.tensor([[128000, 791, 1401, 311, 2324, 374]], device="cuda"),
-                input_ids=torch.randint(0, cfg.vocab_size, (batch_size, seq_len), device="cuda"),
-                cache_positions=torch.arange(seq_len, device="cuda"),
-                attention_mask=torch.ones(batch_size, seq_len, dtype=torch.int64, device="cuda"),
-                use_cache=True,
-            )
-            return args
+    def inputs(dtype, batch_size=cfg.batch_size, seq_len=cfg.seq_len, packed_seq_fn=None):
+        args = {
+            #input_ids=torch.tensor([[128000, 791, 1401, 311, 2324, 374]], device="cuda"),
+            "input_ids": torch.randint(0, cfg.vocab_size, (batch_size, seq_len), device="cuda"),
+            "cache_positions": torch.arange(seq_len, device="cuda"),
+            "attention_mask": torch.ones(batch_size, seq_len, dtype=torch.int64, device="cuda"),
+            "use_cache": True,
+        }
+        return args
 
-        runner.run(sys.argv, name, cfg, MyModel, inputs, module_has_loss=False, grad_fn=None, inference=True)
+    runner.run(sys.argv, cfg.name_or_path, cfg, MyModel, inputs, module_has_loss=False, grad_fn=None, inference=True)

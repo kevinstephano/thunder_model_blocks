@@ -36,5 +36,4 @@ def config():
     config = LlamaConfig.from_dict(json.loads(llama_3_8B_Instruct_cfg_str))
     config.batch_size = 1
     config.seq_len = 4096
-    config._attn_implementation = "sdpa"
     return config
