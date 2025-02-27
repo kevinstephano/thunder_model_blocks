@@ -31,27 +31,22 @@ class MyModel(torch.nn.Module):
         return out
 
 if __name__ == "__main__":
-    config = mistral_config.config()
-    config.lora = True
-    configs = {config.name_or_path: config}
+    cfg = mistral_config.config()
 
-    for name,cfg in configs.items():
-        def inputs(dtype, batch_size=cfg.batch_size, seq_len=cfg.seq_len):
-            hidden_states = torch.randn(batch_size, seq_len, cfg.hidden_size, device='cuda', dtype=dtype, requires_grad=True)
-            position_embeddings = (
-                    torch.randn(batch_size, seq_len, cfg.head_dim, device='cuda', dtype=dtype, requires_grad=False),
-                    torch.randn(batch_size, seq_len, cfg.head_dim, device='cuda', dtype=dtype, requires_grad=False),
-                    )
-            cache_position = torch.arange(seq_len, device='cuda')
-            position_ids = torch.arange(seq_len, device='cuda')
-            return {"hidden_states": hidden_states,
-                    "position_embeddings": position_embeddings,
-                    "cache_position": cache_position,
-                    "position_ids": position_ids,
-                    }
-        
-        def grads(dtype, batch_size=cfg.batch_size, seq_len=cfg.seq_len):
-            grad = torch.randn(batch_size, seq_len, cfg.hidden_size, device='cuda', dtype=dtype, requires_grad=False)
-            return grad
+    def inputs(dtype, batch_size=cfg.batch_size, seq_len=cfg.seq_len, packed_seq_fn=None):
+        args = {
+            "hidden_states": torch.randn(batch_size, seq_len, cfg.hidden_size, device='cuda', dtype=dtype, requires_grad=True),
+            "position_embeddings": (
+                torch.randn(batch_size, seq_len, cfg.head_dim, device='cuda', dtype=dtype, requires_grad=False),
+                torch.randn(batch_size, seq_len, cfg.head_dim, device='cuda', dtype=dtype, requires_grad=False),
+            ),
+            "cache_position": torch.arange(seq_len, device='cuda'),
+            "position_ids": torch.arange(seq_len, device='cuda'),
+        }
+        return args
+    
+    def grads(dtype, batch_size=cfg.batch_size, seq_len=cfg.seq_len):
+        grad = torch.randn(batch_size, seq_len, cfg.hidden_size, device='cuda', dtype=dtype, requires_grad=False)
+        return grad
 
-        runner.run(sys.argv, name, cfg, MyModel, inputs, module_has_loss=False, grad_fn=grads)
+    runner.run(sys.argv, cfg.name_or_path, cfg, MyModel, inputs, module_has_loss=False, grad_fn=grads)

@@ -121,20 +121,18 @@ class MistralNemoRope(torch.nn.Module):
         return query_states, key_states, value_states
 
 if __name__ == "__main__":
-    config = mistral_config.config()
-    configs = {config.name_or_path: config}
+    cfg = mistral_config.config()
 
-    for name,cfg in configs.items():
-        def inputs(dtype, batch_size=cfg.batch_size, seq_len=cfg.seq_len):
-            args = {
-                "query_in_states": torch.randn(batch_size, seq_len, cfg.num_attention_heads * cfg.head_dim, device='cuda', dtype=dtype, requires_grad=True),
-                "key_in_states": torch.randn(batch_size, seq_len, cfg.num_key_value_heads * cfg.head_dim, device='cuda', dtype=dtype, requires_grad=True),
-                "value_in_states": torch.randn(batch_size, seq_len, cfg.num_key_value_heads * cfg.head_dim, device='cuda', dtype=dtype, requires_grad=True),
-                "position_ids": torch.arange(0, seq_len, device='cuda').unsqueeze(0),
-            }
-            return args 
-        def grads(dtype, batch_size=cfg.batch_size, seq_len=cfg.seq_len):
-            grad = torch.randn(batch_size, cfg.num_attention_heads, seq_len, cfg.head_dim, device='cuda', dtype=dtype, requires_grad=False)
-            return grad
+    def inputs(dtype, batch_size=cfg.batch_size, seq_len=cfg.seq_len, packed_seq_fn=None):
+        args = {
+            "query_in_states": torch.randn(batch_size, seq_len, cfg.num_attention_heads * cfg.head_dim, device='cuda', dtype=dtype, requires_grad=True),
+            "key_in_states": torch.randn(batch_size, seq_len, cfg.num_key_value_heads * cfg.head_dim, device='cuda', dtype=dtype, requires_grad=True),
+            "value_in_states": torch.randn(batch_size, seq_len, cfg.num_key_value_heads * cfg.head_dim, device='cuda', dtype=dtype, requires_grad=True),
+            "position_ids": torch.arange(0, seq_len, device='cuda').unsqueeze(0),
+        }
+        return args 
+    def grads(dtype, batch_size=cfg.batch_size, seq_len=cfg.seq_len):
+        grad = torch.randn(batch_size, cfg.num_attention_heads, seq_len, cfg.head_dim, device='cuda', dtype=dtype, requires_grad=False)
+        return grad
  
-        runner.run(sys.argv, name, cfg, MistralNemoRope, inputs, module_has_loss=False, grad_fn=grads)
+    runner.run(sys.argv, cfg.name_or_path, cfg, MistralNemoRope, inputs, module_has_loss=False, grad_fn=grads)
