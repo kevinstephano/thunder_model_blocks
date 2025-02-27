@@ -43,10 +43,10 @@ if __name__ == "__main__":
         args = {
             "hidden_states": torch.randn(batch_size, seq_len, cfg.hidden_size, device='cuda', dtype=dtype, requires_grad=True),
             "position_embeddings": (
-                    torch.randn(cfg.batch_size, cfg.seq_len, attn_hidden_size, device='cuda', dtype=dtype, requires_grad=False),
-                    torch.randn(cfg.batch_size, cfg.seq_len, attn_hidden_size, device='cuda', dtype=dtype, requires_grad=False),
+                    torch.randn(batch_size, seq_len, attn_hidden_size, device='cuda', dtype=dtype, requires_grad=False),
+                    torch.randn(batch_size, seq_len, attn_hidden_size, device='cuda', dtype=dtype, requires_grad=False),
                     ),
-            "cache_position": torch.arange(cfg.seq_len, device='cuda'),
+            "cache_position": torch.arange(seq_len, device='cuda'),
             "attention_mask": attention_mask,
             "position_ids": position_ids,
         }
