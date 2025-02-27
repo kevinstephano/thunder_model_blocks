@@ -67,7 +67,7 @@ def run(sys_argv, model_name, config, module, input_fn, module_has_loss=False, g
     pd.options.display.max_colwidth=200
     pd.options.display.float_format = '{:.3f}'.format
 
-    parser = argparse.ArgumentParser(description='Rope Examples')
+    parser = argparse.ArgumentParser(description='Thunder Based Model Examples')
     parser.add_argument('--nsys', default=False, action="store_true", help='Disables torch.profiler for nsys.')
     parser.add_argument('--csv', default=False, action="store_true", help='Print CSV instead of default Pandas DataFrame.')
     parser.add_argument('--warmup', default=10, type=int, help='Warmup iterations.')
@@ -82,7 +82,7 @@ def run(sys_argv, model_name, config, module, input_fn, module_has_loss=False, g
     parser.add_argument('--thunder_trace', default=False, action="store_true", help='Prints a Thunder trace.')
     parser.add_argument('--dynamo_explain', default=False, action="store_true", help='Prints an explanation of why dynamo generates graph breaks.')
     parser.add_argument('--nvfuser_repro', default=False, action="store_true", help='Prints an nvFuser reproduction script.')
-    parser.add_argument('--attn', default='sdpa', type=str, help='Selects the type of Fused Attention.', choices=['sdpa', 'flash_attention', 'flash_attention_2'])
+    parser.add_argument('--attn', default='sdpa', type=str, help='Selects the type of Fused Attention.', choices=['sdpa', 'flash_attention', 'flash_attention_2', 'eager'])
     parser.add_argument('--lora', default=False, action="store_true", help='Enables Lora based PEFT benchmarking.')
     parser.add_argument('--two_layers', default=False, action="store_true", help='Change model size to only 2 hidden layers.')
     parser.add_argument('--packed_seqs', default=False, action="store_true", help='Enable packed sequences')
