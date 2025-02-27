@@ -39,7 +39,7 @@ if __name__ == "__main__":
         attention_mask = None
         position_ids = torch.arange(cfg.seq_len, device='cuda'),
         if packed_seq_fn is not None:
-            attention_mask, position_ids = packed_seq_fn(batch_size=batch_size, batch_size=seq_len)
+            attention_mask, position_ids = packed_seq_fn(batch_size=batch_size, seq_len=seq_len)
         args = {
             "hidden_states": torch.randn(batch_size, seq_len, cfg.hidden_size, device='cuda', dtype=dtype, requires_grad=True),
             "position_embeddings": (
