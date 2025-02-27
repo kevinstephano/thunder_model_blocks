@@ -63,22 +63,20 @@ class Gemma2Rope(torch.nn.Module):
         return query_states, key_states, value_states
 
 if __name__ == "__main__":
-    config = gemma2_config.config()
-    configs = {config.name_or_path: config}
+    cfg = gemma2_config.config()
 
-    for name,cfg in configs.items():
-        head_dim = getattr(config, "head_dim", config.hidden_size // config.num_attention_heads)
-        def inputs(dtype, batch_size=cfg.batch_size, seq_len=cfg.seq_len):
-            args = {
-                "query_in_states": torch.randn(batch_size, seq_len, head_dim * cfg.num_attention_heads, device='cuda', dtype=dtype, requires_grad=True),
-                "key_in_states": torch.randn(batch_size, seq_len, head_dim * cfg.num_key_value_heads, device='cuda', dtype=dtype, requires_grad=True),
-                "value_in_states": torch.randn(batch_size, seq_len, head_dim * cfg.num_key_value_heads, device='cuda', dtype=dtype, requires_grad=True),
-                "cos": torch.randn(batch_size, seq_len, head_dim, device='cuda', dtype=dtype, requires_grad=True),
-                "sin": torch.randn(batch_size, seq_len, head_dim, device='cuda', dtype=dtype, requires_grad=True),
-            }
-            return args
-        def grads(dtype, batch_size=cfg.batch_size, seq_len=cfg.seq_len):
-            grad = torch.randn(batch_size, cfg.num_attention_heads, seq_len, head_dim, device='cuda', dtype=dtype, requires_grad=False)
-            return grad
+    head_dim = getattr(cfg, "head_dim", cfg.hidden_size // cfg.num_attention_heads)
+    def inputs(dtype, batch_size=cfg.batch_size, seq_len=cfg.seq_len, packed_seq_fn=None):
+        args = {
+            "query_in_states": torch.randn(batch_size, seq_len, head_dim * cfg.num_attention_heads, device='cuda', dtype=dtype, requires_grad=True),
+            "key_in_states": torch.randn(batch_size, seq_len, head_dim * cfg.num_key_value_heads, device='cuda', dtype=dtype, requires_grad=True),
+            "value_in_states": torch.randn(batch_size, seq_len, head_dim * cfg.num_key_value_heads, device='cuda', dtype=dtype, requires_grad=True),
+            "cos": torch.randn(batch_size, seq_len, head_dim, device='cuda', dtype=dtype, requires_grad=True),
+            "sin": torch.randn(batch_size, seq_len, head_dim, device='cuda', dtype=dtype, requires_grad=True),
+        }
+        return args
+    def grads(dtype, batch_size=cfg.batch_size, seq_len=cfg.seq_len):
+        grad = torch.randn(batch_size, cfg.num_attention_heads, seq_len, head_dim, device='cuda', dtype=dtype, requires_grad=False)
+        return grad
  
-        runner.run(sys.argv, name, cfg, Gemma2Rope, inputs, module_has_loss=False, grad_fn=grads)
+    runner.run(sys.argv, cfg.name_or_path, cfg, Gemma2Rope, inputs, module_has_loss=False, grad_fn=grads)
