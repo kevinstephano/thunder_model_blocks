@@ -1,7 +1,7 @@
 #!/bin/bash
 
 seqlens="1024 2048 4096 8192 12288 16384 20480"
-executors="Thunder-torch.compile Thunder-nvFuser"
+executors="Torch-Eager torch.compile Thunder-torch.compile Thunder-nvFuser"
 models=("phi3" "qwen2" "mistral" "gemma2" "starcoder2" "llama")
 d=$(pwd)
 
