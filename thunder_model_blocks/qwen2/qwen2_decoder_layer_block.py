@@ -16,14 +16,17 @@ class MyModel(torch.nn.Module):
         hidden_states,
         position_embeddings,
         cache_position,
+        attention_mask,
         position_ids,
         ) :
-        kwargs = {"position_ids": position_ids, "output_attentions": False, "use_cache": True}
+        kwargs = {"output_attentions": False}
         out = self.model(hidden_states=hidden_states,
-                         position_embeddings=position_embeddings,
-                         attention_mask=None,
+                         attention_mask=attention_mask,
+                         position_ids=position_ids,
                          past_key_value=DynamicCache(),
+                         use_cache=True,
                          cache_position=cache_position,
+                         position_embeddings=position_embeddings,
                          **kwargs
                          )
         return out
@@ -33,6 +36,10 @@ if __name__ == "__main__":
 
     attn_hidden_size = cfg.hidden_size // cfg.num_attention_heads
     def inputs(dtype, batch_size=cfg.batch_size, seq_len=cfg.seq_len, packed_seq_fn=None):
+        attention_mask = None
+        position_ids = torch.arange(cfg.seq_len, device='cuda'),
+        if packed_seq_fn is not None:
+            attention_mask, position_ids = packed_seq_fn(batch_size=batch_size, seq_len=seq_len)
         args = {
             "hidden_states": torch.randn(batch_size, seq_len, cfg.hidden_size, device='cuda', dtype=dtype, requires_grad=True),
             "position_embeddings": (
@@ -40,7 +47,8 @@ if __name__ == "__main__":
                     torch.randn(cfg.batch_size, cfg.seq_len, attn_hidden_size, device='cuda', dtype=dtype, requires_grad=False),
                     ),
             "cache_position": torch.arange(cfg.seq_len, device='cuda'),
-            "position_ids": torch.arange(cfg.seq_len, device='cuda'),
+            "attention_mask": attention_mask,
+            "position_ids": position_ids,
         }
         return args
     

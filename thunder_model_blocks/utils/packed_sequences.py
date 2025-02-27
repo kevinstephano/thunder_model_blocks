@@ -2,13 +2,15 @@ import numpy as np
 import random
 import torch
             
-def dummy_packed_attn_mask(batch_size, min_len, seq_len):
+def dummy_packed_seqs(config, batch_size, min_len, seq_len):
     assert batch_size > 0, f"{batch_size} should be greater than 0!"
     assert seq_len > 0, f"{seq_len} needs to be greater than zero"
     max_len = seq_len - min_len + 1
     assert max_len > 0, f"{seq_len} - {min_len} needs to be greater than zero"
+    assert hasattr(config, "_attn_implementation"), "Config does not have _attn_implementation attribute!"
     attn_mask = []
     position_ids = []
+
     for batch in range(batch_size):
         idx = 0
         mask = []
@@ -29,11 +31,18 @@ def dummy_packed_attn_mask(batch_size, min_len, seq_len):
             positions.append(0)
         attn_mask.append(mask)
         position_ids.append(positions)
-    attn_mask_tensor = torch.tensor(attn_mask, device='cuda', dtype=torch.uint8)
-    position_ids_tensor = torch.tensor(position_ids, device='cuda', dtype=torch.long)
+  
+    attn_mask_tensor = None
+    if config._attn_implementation == "sdpa":
+        attn_mask_tensor = torch.tensor(attn_mask, device='cuda', dtype=torch.uint8, requires_grad=False)
+    position_ids_tensor = torch.tensor(position_ids, device='cuda', dtype=torch.long, requires_grad=False)
     return attn_mask_tensor, position_ids_tensor
 
 if __name__ == "__main__":
-    mask, pos_ids = dummy_packed_attn_mask(2, 2, 16)
+    class DummyConfig:
+        def __init__(self):
+            self._attn_implementaion = "sdpa"
+
+    mask, pos_ids = dummy_packed_seqs(DummyConfig(), 2, 2, 16)
     print(mask)
     print(pos_ids)

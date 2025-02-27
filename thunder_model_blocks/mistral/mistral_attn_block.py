@@ -16,11 +16,12 @@ class MyModel(torch.nn.Module):
         hidden_states,
         position_embeddings,
         cache_position,
+        attention_mask,
         position_ids,
         ) :
         kwargs = {}
         out,_ = self.model(hidden_states=hidden_states,
-                         attention_mask=None,
+                         attention_mask=attention_mask,
                          position_ids=position_ids,
                          past_key_value=DynamicCache(),
                          use_cache=True,
@@ -34,6 +35,10 @@ if __name__ == "__main__":
     cfg = mistral_config.config()
 
     def inputs(dtype, batch_size=cfg.batch_size, seq_len=cfg.seq_len, packed_seq_fn=None):
+        attention_mask = None
+        position_ids = torch.arange(cfg.seq_len, device='cuda'),
+        if packed_seq_fn is not None:
+            attention_mask, position_ids = packed_seq_fn(batch_size=batch_size, seq_len=seq_len)
         args = {
             "hidden_states": torch.randn(batch_size, seq_len, cfg.hidden_size, device='cuda', dtype=dtype, requires_grad=True),
             "position_embeddings": (
@@ -41,7 +46,8 @@ if __name__ == "__main__":
                 torch.randn(batch_size, seq_len, cfg.head_dim, device='cuda', dtype=dtype, requires_grad=False),
             ),
             "cache_position": torch.arange(seq_len, device='cuda'),
-            "position_ids": torch.arange(seq_len, device='cuda'),
+            "attention_mask": attention_mask,
+            "position_ids": position_ids,
         }
         return args
     

@@ -14,6 +14,7 @@ from torch.profiler import profile, ProfilerActivity
 import traceback
 
 from thunder_model_blocks.utils.lora import patch_linear_module
+from thunder_model_blocks.utils.packed_sequences import dummy_packed_seqs
 #from nemo.collections.llm.peft.lora import patch_linear_module
 
 def install_pandas():
@@ -84,6 +85,7 @@ def run(sys_argv, model_name, config, module, input_fn, module_has_loss=False, g
     parser.add_argument('--attn', default='sdpa', type=str, help='Selects the type of Fused Attention.', choices=['sdpa', 'flash_attention', 'flash_attention_2'])
     parser.add_argument('--lora', default=False, action="store_true", help='Enables Lora based PEFT benchmarking.')
     parser.add_argument('--two_layers', default=False, action="store_true", help='Change model size to only 2 hidden layers.')
+    parser.add_argument('--packed_seqs', default=False, action="store_true", help='Enable packed sequences')
     args,extra_args = parser.parse_known_args(args=sys_argv[1:])
 
     assert len(extra_args) == 0, "Unknown args: {}".format(extra_args)
@@ -134,10 +136,13 @@ def run(sys_argv, model_name, config, module, input_fn, module_has_loss=False, g
     seq_lens = [config.seq_len]
     if args.seq_lens is not None:
         seq_lens = args.seq_lens
+    packed_seq_fn = None
+    if args.packed_seqs:
+        packed_seq_fn = partial(dummy_packed_seqs, config=config, min_len=2)
 
     for batch_size, seq_len in product(batch_sizes, seq_lens):
         # setup inputs
-        local_input_fn = partial(input_fn, dtype, batch_size=batch_size, seq_len=seq_len)
+        local_input_fn = partial(input_fn, dtype, batch_size=batch_size, seq_len=seq_len, packed_seq_fn=packed_seq_fn)
         local_grad_fn = None
         if grad_fn is not None:
             local_grad_fn = partial(grad_fn, dtype, batch_size=batch_size, seq_len=seq_len)
