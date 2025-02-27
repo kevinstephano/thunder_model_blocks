@@ -41,5 +41,4 @@ def config():
     config = MistralConfig.from_dict(json.loads(mistral_cfg_str))
     config.batch_size = 1
     config.seq_len = 4096
-    config._attn_implementation = "sdpa"
     return config
