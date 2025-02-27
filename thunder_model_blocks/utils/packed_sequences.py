@@ -42,8 +42,10 @@ def dummy_packed_seqs(config, batch_size, min_len, seq_len):
 if __name__ == "__main__":
     class DummyConfig:
         def __init__(self):
-            self._attn_implementaion = "sdpa"
+            self._attn_implementation = "sdpa"
 
     mask, pos_ids = dummy_packed_seqs(DummyConfig(), 2, 2, 16)
-    print(mask)
+    print("Attention Mask:")
+    print(mask.to(torch.uint8))
+    print("Position IDs:")
     print(pos_ids)
