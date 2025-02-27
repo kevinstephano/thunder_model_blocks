@@ -35,6 +35,7 @@ def dummy_packed_seqs(config, batch_size, min_len, seq_len):
     attn_mask_tensor = None
     if config._attn_implementation == "sdpa":
         attn_mask_tensor = torch.tensor(attn_mask, device='cuda', dtype=torch.uint8, requires_grad=False)
+        attn_mask_tensor = attn_mask_tensor.unsqueeze(dim=1)
     position_ids_tensor = torch.tensor(position_ids, device='cuda', dtype=torch.long, requires_grad=False)
     return attn_mask_tensor, position_ids_tensor
 
