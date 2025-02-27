@@ -41,5 +41,4 @@ def config():
     config = Gemma2Config.from_dict(json.loads(gemma2_cfg_str))
     config.batch_size = 1
     config.seq_len = 4096
-    config._attn_implementation = "sdpa"
     return config
