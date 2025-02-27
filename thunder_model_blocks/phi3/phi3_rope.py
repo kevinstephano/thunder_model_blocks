@@ -139,19 +139,17 @@ class HfPhi3Rope(torch.nn.Module):
         return query_states, key_states, value_states
 
 if __name__ == "__main__":
-    config = phi3_config.config()
-    configs = {config.name_or_path: config}
+    cfg = phi3_config.config()
 
-    for name,cfg in configs.items():
-        head_dim = cfg.hidden_size // cfg.num_attention_heads
-        def inputs(dtype, batch_size=cfg.batch_size, seq_len=cfg.seq_len):
-            args = {
-                "qkv": torch.randn(batch_size, seq_len, cfg.num_attention_heads * head_dim + 2 * (cfg.num_key_value_heads * head_dim), device='cuda', dtype=dtype, requires_grad=True),
-                "position_ids": torch.arange(0, seq_len, device='cuda').unsqueeze(0),
-            }
-            return args
-        def grads(dtype, batch_size=cfg.batch_size, seq_len=cfg.seq_len):
-            grad = torch.randn(batch_size, cfg.num_attention_heads, seq_len, head_dim, device='cuda', dtype=dtype, requires_grad=False)
-            return grad
+    head_dim = cfg.hidden_size // cfg.num_attention_heads
+    def inputs(dtype, batch_size=cfg.batch_size, seq_len=cfg.seq_len, packed_seq_fn=None):
+        args = {
+            "qkv": torch.randn(batch_size, seq_len, cfg.num_attention_heads * head_dim + 2 * (cfg.num_key_value_heads * head_dim), device='cuda', dtype=dtype, requires_grad=True),
+            "position_ids": torch.arange(0, seq_len, device='cuda').unsqueeze(0),
+        }
+        return args
+    def grads(dtype, batch_size=cfg.batch_size, seq_len=cfg.seq_len):
+        grad = torch.randn(batch_size, cfg.num_attention_heads, seq_len, head_dim, device='cuda', dtype=dtype, requires_grad=False)
+        return grad
  
-        runner.run(sys.argv, name, cfg, HfPhi3Rope, inputs, module_has_loss=False, grad_fn=grads)
+    runner.run(sys.argv, cfg.name_or_path, cfg, HfPhi3Rope, inputs, module_has_loss=False, grad_fn=grads)
