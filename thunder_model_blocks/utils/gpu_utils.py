@@ -27,6 +27,8 @@ assert nvml is not None, "Pynvml is not installed!"
 
 def lock_max_gpu_clocks():
     """Locks the maximum SM clock of an NVIDIA GPU using pynvml.
+       NOTE: you can manually see the clocks are locked by issuing the command:
+           nvidia-smi dmon
     """
     try:
         nvml.nvmlInit()  # Initialize NVML
@@ -35,14 +37,9 @@ def lock_max_gpu_clocks():
         for gpu_id in range(num_devices):
             handle = nvml.nvmlDeviceGetHandleByIndex(gpu_id)  # Get the GPU handle
 
-            is_supported = nvml.nvmlDeviceGetAPIRestriction(handle, nvml.NVML_RESTRICTED_API_SET_APPLICATION_CLOCKS)
-            if not is_supported:
-                print(f"Warning: GPU {gpu_id} does not support application clock management")
-                continue
             max_clock = nvml.nvmlDeviceGetMaxClockInfo(handle, nvml.NVML_CLOCK_SM)
-            nvml.nvmlDeviceSetClock(handle, nvml.NVML_CLOCK_SM, max_clock)
-         
-            print(f"Successfully locked GPU {gpu_id} SM clock to {max_clock} MHz.")
+            nvml.nvmlDeviceSetGpuLockedClocks(handle, max_clock, max_clock)
+            #print(f"Successfully locked GPU {gpu_id} SM clock to {max_clock} MHz.")
 
     except nvml.NVMLError as error:
         #print(f"Error locking GPU clock: {error}")
@@ -67,16 +64,9 @@ def reset_gpu_clocks():
             try:
                 handle = nvml.nvmlDeviceGetHandleByIndex(gpu_id)
                 
-                # Check if applications clocks are supported
-                is_supported = nvml.nvmlDeviceGetAPIRestriction(handle, nvml.NVML_RESTRICTED_API_SET_APPLICATION_CLOCKS)
-                print()
-                if not is_supported:
-                    print(f"Warning: GPU {gpu_id} does not support application clock management")
-                    continue
-                
                 # Reset the clocks
-                nvml.nvmlDeviceResetApplicationsClocks(handle)
-                print(f"Successfully reset clocks for GPU {gpu_id}")
+                nvml.nvmlDeviceResetGpuLockedClocks(handle)
+                #print(f"Successfully reset clocks for GPU {gpu_id}")
                 
             except nvml.NVMLError as e:
                 print(f"Error resetting GPU {gpu_id}: {e}")

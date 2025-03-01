@@ -87,6 +87,7 @@ def run(sys_argv, model_name, config, module, input_fn, module_has_loss=False, g
     parser.add_argument('--lora', default=False, action="store_true", help='Enables Lora based PEFT benchmarking.')
     parser.add_argument('--two_layers', default=False, action="store_true", help='Change model size to only 2 hidden layers.')
     parser.add_argument('--packed_seqs', default=False, action="store_true", help='Enable packed sequences')
+    parser.add_argument('--disable_locked_clocks', default=False, action="store_true", help='Disable Locked Clocks for debug.')
     args,extra_args = parser.parse_known_args(args=sys_argv[1:])
 
     assert len(extra_args) == 0, "Unknown args: {}".format(extra_args)
@@ -331,13 +332,15 @@ def run(sys_argv, model_name, config, module, input_fn, module_has_loss=False, g
                 # Locking clocks asssures that kernel times are measured at a consistent
                 # clock frequency given that python sleep give enough time for the clocks
                 # to be put in power save mode after measuring forward kernels.
-                # lock_max_gpu_clocks()
+                if not args.disable_locked_clocks:
+                    lock_max_gpu_clocks()
                 fwd_kernels, fwd_time, bwd_kernels, bwd_time, wallclock_time = run_model()
             except Exception as e:
                 traceback.print_exc()
                 print("Model Exception!", e)
             finally:
-                # reset_gpu_clocks()
+                if not args.disable_locked_clocks:
+                    reset_gpu_clocks()
             torch.cuda.nvtx.range_pop()
  
             if (("nvFuser" in name) or (name == "Thunder-default")) and args.nvfuser_repro:
