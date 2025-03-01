@@ -13,6 +13,7 @@ import torch
 from torch.profiler import profile, ProfilerActivity
 import traceback
 
+from thunder_model_blocks.utils.gpu_utils import lock_max_gpu_clocks, reset_gpu_clocks
 from thunder_model_blocks.utils.lora import patch_linear_module
 from thunder_model_blocks.utils.packed_sequences import dummy_packed_seqs
 #from nemo.collections.llm.peft.lora import patch_linear_module
@@ -327,10 +328,16 @@ def run(sys_argv, model_name, config, module, input_fn, module_has_loss=False, g
             wallclock_time = 0.0
             torch.cuda.nvtx.range_push(f"Executor: {name}")
             try:
+                # Locking clocks asssures that kernel times are measured at a consistent
+                # clock frequency given that python sleep give enough time for the clocks
+                # to be put in power save mode after measuring forward kernels.
+                # lock_max_gpu_clocks()
                 fwd_kernels, fwd_time, bwd_kernels, bwd_time, wallclock_time = run_model()
             except Exception as e:
                 traceback.print_exc()
                 print("Model Exception!", e)
+            finally:
+                # reset_gpu_clocks()
             torch.cuda.nvtx.range_pop()
  
             if (("nvFuser" in name) or (name == "Thunder-default")) and args.nvfuser_repro:
