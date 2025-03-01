@@ -352,16 +352,29 @@ def run(sys_argv, model_name, config, module, input_fn, module_has_loss=False, g
                     fd_bwd[key].last_used.execute(inputs=fd_bwd[key].last_inputs, print_repro=True)
  
             total_time = fwd_time + bwd_time
-            benchmark_data.append([model_name, args.dtype, batch_size, seq_len, fwd_kernels, fwd_time, bwd_kernels, bwd_time, fwd_kernels+bwd_kernels, total_time, wallclock_time, wallclock_time - total_time])
+            #benchmark_data.append([model_name, args.dtype, batch_size, seq_len, fwd_kernels, fwd_time, bwd_kernels, bwd_time, fwd_kernels+bwd_kernels, total_time, wallclock_time, wallclock_time - total_time])
+            if inference:
+                benchmark_data.append([name, model_name, args.dtype, batch_size, seq_len, fwd_kernels, fwd_time, wallclock_time, wallclock_time - total_time])
+            else:
+                benchmark_data.append([name, model_name, args.dtype, batch_size, seq_len, fwd_kernels, fwd_time, bwd_kernels, bwd_time, fwd_kernels+bwd_kernels, total_time, wallclock_time, wallclock_time - total_time])
 
-        df = pd.DataFrame(benchmark_data, index=executors.keys(), columns=["Model", "DType", "Batch", "Seq-Len", "Fwd-Krnls", "Fwd-K-Time(ms)", "Bwd-Krnls", "Bwd-K-Time(ms)", "Krnls", "K-Time(ms)", "Wall-Time(ms)", "Overhead(ms)"])
-        if (len(executors.keys()) > 1) and  ("Torch-Eager" in executors.keys()) :
-            df["Fwd-K-Spdup"] = df["Fwd-K-Time(ms)"].rdiv(df.loc["Torch-Eager", 'Fwd-K-Time(ms)'])
-            df["Bwd-K-Spdup"] = df["Bwd-K-Time(ms)"].rdiv(df.loc["Torch-Eager", 'Bwd-K-Time(ms)'])
-            df["K-Spdup"] = df["K-Time(ms)"].rdiv(df.loc["Torch-Eager", 'K-Time(ms)'])
-            df["Wall-Spdup"] = df["Wall-Time(ms)"].rdiv(df.loc["Torch-Eager", 'Wall-Time(ms)'])
-            new_order = ["Model", "DType", "Batch", "Seq-Len", "Fwd-Krnls", "Fwd-K-Time(ms)", "Fwd-K-Spdup", "Bwd-Krnls", "Bwd-K-Time(ms)", "Bwd-K-Spdup", "Krnls", "K-Time(ms)", "K-Spdup", "Wall-Time(ms)", "Wall-Spdup", "Overhead(ms)"]
-            df = df[new_order]
+        if inference:
+            df = pd.DataFrame(benchmark_data, columns=["Executor", "Model", "DType", "Batch", "Seq-Len", "Fwd-Krnls", "Fwd-K-Time(ms)", "Wall-Time(ms)", "Overhead(ms)"])
+            if (len(executors.keys()) > 1) and  ("Torch-Eager" in executors.keys()) :
+                df["Fwd-K-Spdup"] = df["Fwd-K-Time(ms)"].rdiv(df.loc[df["Executor"] == "Torch-Eager", 'Fwd-K-Time(ms)'].item())
+                df["Wall-Spdup"] = df["Wall-Time(ms)"].rdiv(df.loc[df["Executor"] == "Torch-Eager", 'Wall-Time(ms)'].item())
+                new_order = ["Executor", "Model", "DType", "Batch", "Seq-Len", "Fwd-Krnls", "Fwd-K-Time(ms)", "Fwd-K-Spdup", "Wall-Time(ms)", "Wall-Spdup", "Overhead(ms)"]
+                df = df[new_order]
+        else:
+            df = pd.DataFrame(benchmark_data, columns=["Executor", "Model", "DType", "Batch", "Seq-Len", "Fwd-Krnls", "Fwd-K-Time(ms)", "Bwd-Krnls", "Bwd-K-Time(ms)", "Krnls", "K-Time(ms)", "Wall-Time(ms)", "Overhead(ms)"])
+            if (len(executors.keys()) > 1) and  ("Torch-Eager" in executors.keys()) :
+                df["Fwd-K-Spdup"] = df["Fwd-K-Time(ms)"].rdiv(df.loc[df["Executor"] == "Torch-Eager", 'Fwd-K-Time(ms)'].item())
+                df["Bwd-K-Spdup"] = df["Bwd-K-Time(ms)"].rdiv(df.loc[df["Executor"] == "Torch-Eager", 'Bwd-K-Time(ms)'].item())
+                df["K-Spdup"] = df["K-Time(ms)"].rdiv(df.loc[df["Executor"] == "Torch-Eager", 'K-Time(ms)'].item())
+                df["Wall-Spdup"] = df["Wall-Time(ms)"].rdiv(df.loc[df["Executor"] == "Torch-Eager", 'Wall-Time(ms)'].item())
+                new_order = ["Executor", "Model", "DType", "Batch", "Seq-Len", "Fwd-Krnls", "Fwd-K-Time(ms)", "Fwd-K-Spdup", "Bwd-Krnls", "Bwd-K-Time(ms)", "Bwd-K-Spdup", "Krnls", "K-Time(ms)", "K-Spdup", "Wall-Time(ms)", "Wall-Spdup", "Overhead(ms)"]
+                df = df[new_order]
+
         if args.csv:
             print(df.to_csv())
         else:
