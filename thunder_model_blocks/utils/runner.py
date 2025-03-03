@@ -384,6 +384,7 @@ def run(sys_argv, model_name, config, module, input_fn, module_has_loss=False, g
             df_tot = pd.concat([df_tot, df], ignore_index=True)
 
     print(df_tot.to_string())
+    print(df_tot.to_csv())
 
     if args.pivot:
         df_tot_pivot = None
