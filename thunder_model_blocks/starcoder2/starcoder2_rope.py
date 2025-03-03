@@ -66,7 +66,7 @@ if __name__ == "__main__":
     cfg = starcoder2_config.config()
 
     head_dim = getattr(cfg, "head_dim", cfg.hidden_size // cfg.num_attention_heads)
-    def inputs(dtype, batch_size=cfg.batch_size, seq_len=cfg.seq_len):
+    def inputs(dtype, batch_size=cfg.batch_size, seq_len=cfg.seq_len, packed_seq_fn=None):
         args = {
             "query_in_states": torch.randn(batch_size, seq_len, head_dim * cfg.num_attention_heads, device='cuda', dtype=dtype, requires_grad=True),
             "key_in_states": torch.randn(batch_size, seq_len, head_dim * cfg.num_key_value_heads, device='cuda', dtype=dtype, requires_grad=True),
