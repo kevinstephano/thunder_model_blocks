@@ -1,0 +1,6 @@
+[project]
+name = "Thunder-Model-Blocks"
+version = "0.0.1"
+
+[tool.setuptools.packages.find]
+exclude = ["scripts*", "notebooks*"]
