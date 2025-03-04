@@ -71,6 +71,7 @@ def run(sys_argv, model_name, config, module, input_fn, module_has_loss=False, g
     parser = argparse.ArgumentParser(description='Thunder Based Model Examples')
     parser.add_argument('--nsys', default=False, action="store_true", help='Disables torch.profiler for nsys.')
     parser.add_argument('--pivot', default=False, action="store_true", help='Create a pivot table of executors as columns that is more suitable for graphing.')
+    parser.add_argument('--csv', default=False, action="store_true", help='Print csv output.')
     parser.add_argument('--warmup', default=10, type=int, help='Warmup iterations.')
     parser.add_argument('--dtype', default='bfloat16', type=str, help="Set model and activation data types.")
     parser.add_argument('--batch_sizes', nargs='*', default=None, type=int, help="List of batch sizes. The default of None says to use the model default.")
@@ -384,7 +385,8 @@ def run(sys_argv, model_name, config, module, input_fn, module_has_loss=False, g
             df_tot = pd.concat([df_tot, df], ignore_index=True)
 
     print(df_tot.to_string())
-    print(df_tot.to_csv())
+    if args.csv:
+        print(df_tot.to_csv(model_name + ".csv", index=False))
 
     if args.pivot:
         df_tot_pivot = None
@@ -394,7 +396,6 @@ def run(sys_argv, model_name, config, module, input_fn, module_has_loss=False, g
             df_tot_pivot = df_tot.pivot(index=["Model", "Batch", "Seq-Len"], columns=["Executor"], values=["Fwd-K-Time(ms)", "Fwd-K-Spdup", "Bwd-K-Time(ms)", "Bwd-K-Spdup", "K-Time(ms)", "K-Spdup", "Wall-Time(ms)", "Wall-Spdup", "Overhead(ms)"])
 
         print(df_tot_pivot.to_string())
-        print(df_tot_pivot.to_csv())
 
 
     return None
