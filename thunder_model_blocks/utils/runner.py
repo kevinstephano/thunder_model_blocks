@@ -101,6 +101,8 @@ def run(sys_argv, model_name, config, module, input_fn, module_has_loss=False, g
     if args.two_layers:
         config.num_hidden_layers = 2
 
+    model_name = model_name.split("/")[1]
+
     executors = OrderedDict()
     for exec in args.execs:
         if exec == "Torch-Eager":
