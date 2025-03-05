@@ -1,5 +1,5 @@
 [project]
-name = "Thunder-Model-Blocks"
+name = "thunder_model_blocks"
 version = "0.0.1"
 
 [tool.setuptools.packages.find]
