@@ -1,25 +1,10 @@
+import math
 import sys
 import torch
 from typing import Tuple
 
 from thunder_model_blocks.utils import runner
 from thunder_model_blocks.deepseek_r1 import deepseek_r1_config
-
-class DeepseekV3RMSNorm(torch.nn.Module):
-    def __init__(self, hidden_size, eps=1e-6):
-        """
-        DeepseekV3RMSNorm is equivalent to T5LayerNorm
-        """
-        super().__init__()
-        self.weight = nn.Parameter(torch.ones(hidden_size))
-        self.variance_epsilon = eps
-
-    def forward(self, hidden_states):
-        input_dtype = hidden_states.dtype
-        hidden_states = hidden_states.to(torch.float32)
-        variance = hidden_states.pow(2).mean(-1, keepdim=True)
-        hidden_states = hidden_states * torch.rsqrt(variance + self.variance_epsilon)
-        return self.weight * hidden_states.to(input_dtype)
 
 class DeepseekV3RotaryEmbedding(torch.nn.Module):
     def __init__(self, dim, max_position_embeddings=2048, base=10000, device=None):
@@ -230,7 +215,6 @@ class DeepseekRope(torch.nn.Module):
         self.qk_nope_head_dim = config.qk_nope_head_dim
         self.q_head_dim = config.qk_nope_head_dim + config.qk_rope_head_dim
 
-        self.kv_a_layernorm = DeepseekV3RMSNorm(config.kv_lora_rank)
         self._init_rope()
 
     def _init_rope(self):
@@ -317,10 +301,13 @@ KV_BEFORE torch.Size([1, 4096, 32768]) torch.bfloat16 False
 if __name__ == "__main__":
     cfg = deepseek_r1_config.config()
 
+    q_head_dim = cfg.qk_nope_head_dim + cfg.qk_rope_head_dim
     head_dim = cfg.hidden_size // cfg.num_attention_heads
     def inputs(dtype, batch_size=cfg.batch_size, seq_len=cfg.seq_len, packed_seq_fn=None):
         args = {
-            "qkv": torch.randn(batch_size, seq_len, cfg.num_attention_heads * head_dim + 2 * (cfg.num_key_value_heads * head_dim), device='cuda', dtype=dtype, requires_grad=True),
+            "q": torch.randn(batch_size, seq_len, cfg.num_attention_heads * q_head_dim, device='cuda', dtype=dtype, requires_grad=True),
+            "k_pe": torch.randn(batch_size, seq_len, cfg.qk_rope_head_dim, device='cuda', dtype=dtype, requires_grad=True),
+            "kv": torch.randn(batch_size, seq_len, cfg.num_attention_heads * (q_head_dim - cfg.qk_rope_head_dim + cfg.v_head_dim), device='cuda', dtype=dtype, requires_grad=True),
             "position_ids": torch.arange(0, seq_len, device='cuda').unsqueeze(0),
         }
         return args
@@ -328,4 +315,4 @@ if __name__ == "__main__":
         grad = torch.randn(batch_size, cfg.num_attention_heads, seq_len, head_dim, device='cuda', dtype=dtype, requires_grad=False)
         return grad
  
-    runner.run(sys.argv, cfg.name_or_path, cfg, HfPhi3Rope, inputs, module_has_loss=False, grad_fn=grads)
+    runner.run(sys.argv, cfg.name_or_path, cfg, DeepseekRope, inputs, module_has_loss=False, grad_fn=grads)
