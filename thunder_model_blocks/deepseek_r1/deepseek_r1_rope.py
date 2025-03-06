@@ -291,18 +291,11 @@ class DeepseekRope(torch.nn.Module):
         value_states = value_states.transpose(1, 2)
 
         return query_states, key_states, value_states
-"""
-Q torch.Size([1, 4096, 24576]) torch.bfloat16 False
-P IDS torch.Size([1, 4096]) torch.int64 False
-K_PE torch.Size([1, 4096, 64]) torch.bfloat16 False
-KV_BEFORE torch.Size([1, 4096, 32768]) torch.bfloat16 False
-"""
 
 if __name__ == "__main__":
     cfg = deepseek_r1_config.config()
 
     q_head_dim = cfg.qk_nope_head_dim + cfg.qk_rope_head_dim
-    head_dim = cfg.hidden_size // cfg.num_attention_heads
     def inputs(dtype, batch_size=cfg.batch_size, seq_len=cfg.seq_len, packed_seq_fn=None):
         args = {
             "q": torch.randn(batch_size, seq_len, cfg.num_attention_heads * q_head_dim, device='cuda', dtype=dtype, requires_grad=True),
@@ -312,7 +305,7 @@ if __name__ == "__main__":
         }
         return args
     def grads(dtype, batch_size=cfg.batch_size, seq_len=cfg.seq_len):
-        grad = torch.randn(batch_size, cfg.num_attention_heads, seq_len, head_dim, device='cuda', dtype=dtype, requires_grad=False)
+        grad = torch.randn(batch_size, seq_len, cfg.num_attention_heads, q_head_dim, device='cuda', dtype=dtype, requires_grad=False)
         return grad
  
     runner.run(sys.argv, cfg.name_or_path, cfg, DeepseekRope, inputs, module_has_loss=False, grad_fn=grads)
