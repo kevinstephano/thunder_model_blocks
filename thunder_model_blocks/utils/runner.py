@@ -386,7 +386,6 @@ def run(sys_argv, model_name, config, module, input_fn, module_has_loss=False, g
         else:
             df_tot = pd.concat([df_tot, df], ignore_index=True)
 
-    print(df_tot.to_string())
     if args.csv:
         print(df_tot.to_csv(model_name + ".csv", index=False))
 
