@@ -3,15 +3,13 @@ import sys
 import torch
 from typing import Optional
 
+from transformers import AutoConfig, AutoModelForCausalLM
 from thunder_model_blocks.utils import runner
-from thunder import AutoConfig, AutoModel
-from thunder_model_blocks.qwen2 import qwen2_config
-from transformers.models.qwen2 import Qwen2ForCausalLM
 
 class MyModel(torch.nn.Module):
     def __init__(self, config):
         super(MyModel, self).__init__()
-        self.model = Qwen2ForCausalLM(config)
+        self.model = AutoModelForCausalLM.from_config(config)
 
     def forward(
         self,
@@ -31,7 +29,9 @@ if __name__ == "__main__":
     assert args.model is not None, "The user did not provide a model!"
     sys_argv = [sys.argv[0]] + extra_args
 
-    cfg = qwen2_config.config()
+    cfg = AutoConfig.from_pretrained(args.model)
+    cfg.batch_size = 1
+    cfg.seq_len = 128
 
     def inputs(dtype, batch_size=cfg.batch_size, seq_len=cfg.seq_len, packed_seq_fn=None):
         attention_mask = None
