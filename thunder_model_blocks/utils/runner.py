@@ -82,6 +82,7 @@ def run(sys_argv, model_name, config, module, input_fn, module_has_loss=False, g
         default=["Torch-Eager", "torch.compile", "Thunder-torch.compile", "Thunder-nvFuser"],
         choices=["Torch-Eager", "torch.compile", "Thunder-Torch", "Thunder-torch.compile", "Thunder-default", "Thunder-nvFuser", "Thunder-nvFuser-more-ops"])
     parser.add_argument('--thunder_trace', default=False, action="store_true", help='Prints a Thunder trace.')
+    parser.add_argument('--thunder_trace_for_error', default=False, action="store_true", help='Prints a Thunder trace prior to execution to capture a trace before it hits a runtime error.')
     parser.add_argument('--dynamo_explain', default=False, action="store_true", help='Prints an explanation of why dynamo generates graph breaks.')
     parser.add_argument('--nvfuser_repro', default=False, action="store_true", help='Prints an nvFuser reproduction script.')
     parser.add_argument('--attn', default='sdpa', type=str, help='Selects the type of Fused Attention.', choices=['sdpa', 'flash_attention', 'flash_attention_2', 'eager'])
@@ -159,7 +160,14 @@ def run(sys_argv, model_name, config, module, input_fn, module_has_loss=False, g
                 torch._dynamo.reset()
             if ("nvFuser" in name) or ("default" in name):
                 FusionCache.get().reset()
-            exec_model = exec(model)
+            if (("Thunder" in name) and args.thunder_trace_for_error):
+                # Capturing the error prior to runtime execution is using thunder.jit as I am not sure
+                # how to do the same with ThunderFX
+                exec_model = thunder.jit(model)
+                print(thunder.compile_data(exec_model).get_computation_and_inputs(**local_input_fn()))
+                exit(0)
+            else:
+                exec_model = exec(model)
 
             if (("Thunder" in name) or ("torch.compile" in name)) and (args.dynamo_explain):
                 explanation = torch._dynamo.explain(model)(**local_input_fn())
