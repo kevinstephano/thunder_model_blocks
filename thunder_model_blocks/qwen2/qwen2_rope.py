@@ -83,8 +83,8 @@ if __name__ == "__main__":
             "query_in_states": torch.randn(batch_size, seq_len, cfg.num_attention_heads * head_dim, device='cuda', dtype=dtype, requires_grad=True),
             "key_in_states": torch.randn(batch_size, seq_len, cfg.num_key_value_heads * head_dim, device='cuda', dtype=dtype, requires_grad=True),
             "value_in_states": torch.randn(batch_size, seq_len, cfg.num_key_value_heads * head_dim, device='cuda', dtype=dtype, requires_grad=True),
-            "cos": torch.randn(batch_size, seq_len, head_dim, device='cuda', dtype=dtype, requires_grad=True),
-            "sin": torch.randn(batch_size, seq_len, head_dim, device='cuda', dtype=dtype, requires_grad=True),
+            "cos": torch.randn(1, seq_len, head_dim, device='cuda', dtype=dtype, requires_grad=True),
+            "sin": torch.randn(1, seq_len, head_dim, device='cuda', dtype=dtype, requires_grad=True),
         }
         return args
     def grads(dtype, batch_size=cfg.batch_size, seq_len=cfg.seq_len):

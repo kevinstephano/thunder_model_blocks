@@ -87,8 +87,8 @@ if __name__ == "__main__":
     def inputs(dtype, batch_size=cfg.batch_size, seq_len=cfg.seq_len, packed_seq_fn=None):
         args = {
             "qkv": torch.randn(batch_size, seq_len, (cfg.n_head + 2 * cfg.n_query_groups) * cfg.head_size, device='cuda', dtype=dtype, requires_grad=True),
-            "cos": torch.randn(seq_len, cfg.rope_n_elem, device='cuda', dtype=dtype, requires_grad=False),
-            "sin": torch.randn(seq_len, cfg.rope_n_elem, device='cuda', dtype=dtype, requires_grad=False),
+            "cos": torch.randn(1, seq_len, cfg.rope_n_elem, device='cuda', dtype=dtype, requires_grad=False),
+            "sin": torch.randn(1, seq_len, cfg.rope_n_elem, device='cuda', dtype=dtype, requires_grad=False),
         }
         return args
     def grads(dtype, batch_size=cfg.batch_size, seq_len=cfg.seq_len):
