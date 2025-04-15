@@ -9,7 +9,7 @@ from thunder_model_blocks.utils import runner
 class MyModel(torch.nn.Module):
     def __init__(self, config):
         super(MyModel, self).__init__()
-        self.model = AutoModelForCausalLM.from_config(config)
+        self.model = AutoModelForCausalLM.from_config(config, trust_remote_code=True)
 
     def forward(
         self,
@@ -29,7 +29,7 @@ if __name__ == "__main__":
     assert args.model is not None, "The user did not provide a model!"
     sys_argv = [sys.argv[0]] + extra_args
 
-    cfg = AutoConfig.from_pretrained(args.model)
+    cfg = AutoConfig.from_pretrained(args.model, trust_remote_code=True)
     cfg.batch_size = 1
     cfg.seq_len = 128
 
