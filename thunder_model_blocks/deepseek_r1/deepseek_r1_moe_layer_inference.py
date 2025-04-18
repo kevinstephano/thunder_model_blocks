@@ -20,7 +20,7 @@ if __name__ == "__main__":
     cfg.batch_size = 1
     cfg.seq_len = 4096
 
-    def inputs(dtype, batch_size=cfg.batch_size, seq_len=cfg.seq_len):
+    def inputs(dtype, batch_size=cfg.batch_size, seq_len=cfg.seq_len, packed_seq_fn=None):
         args = {
             "hidden_states": torch.randn(batch_size, seq_len, cfg.hidden_size, device='cuda', dtype=dtype, requires_grad=False),
         }
